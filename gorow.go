@@ -211,6 +211,7 @@ func newRig(lin float64, mb float64, lscull float64,
 		span:        span,
 		catchangle:  catchangle,
 		dragform:    dragform,
+		_Bladearea:  bladearea,
 	}
 }
 
