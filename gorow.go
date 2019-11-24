@@ -1,3 +1,6 @@
+/*
+Package gorow package to simulate the physics rowing (sport)
+*/
 package gorow
 
 import (
