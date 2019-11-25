@@ -133,3 +133,31 @@ func TestDFootboard(t *testing.T) {
 			got, want)
 	}
 }
+
+func TestBladeForce(t *testing.T) {
+	var want = []float64{
+		1.7498034669231506,
+		99.99941828917106,
+		79.60791676433922,
+		99.10872918689238,
+		13.317036349422086,
+		0.2639699809003707,
+		0.035469104080404316,
+		0.13356793479539003,
+	}
+
+	var rg = newRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	var got = bladeForce(0.65, rg, 3.5, 100)
+
+	if len(got) != len(want) {
+		t.Errorf("BladeForce didn't produce the right number of answers. Expecting %d, got %d\n", len(want), len(got))
+	}
+
+	for i := 0; i < len(got); i++ {
+		if got[i] != want[i] {
+			t.Errorf("BladeForce error. Expected %f, got %f\n", want[i], got[i])
+		}
+	}
+
+}

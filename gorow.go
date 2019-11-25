@@ -218,15 +218,60 @@ func newRig(lin float64, mb float64, lscull float64,
 	}
 }
 
-func bladeForce(oarangle float64, rigging rig, vb, fblade float64) {
+func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
 	var lin = rigging.lin
 	var lscull = rigging.lscull
 	var lout = lscull - lin
 
-	var phidot0 = vb * math.Cos(oarangle) / lout
-	var phidot = Linspace(phidot0, 2*math.Abs(phidot0), 50)
-	var vblade = Linspace(lout, lout, 50)
+	const N = 50
 
-	vblade.MulElemVec(vblade, phidot)
+	// temporary variables
+	var phidot1 = 1.7498034669231506
+	var FR = 99.99941828917106
+	var Fprop = 79.60791676433922
+	var FL = 99.10872918689238
+	var FD = 13.317036349422086
+	var CL = 0.2639699809003707
+	var CD = 0.035469104080404316
+	var a = 0.13356793479539003
+
+	var phidot0 = vb * math.Cos(oarangle) / lout
+	var phidot = Linspace(phidot0, 2*math.Abs(phidot0), N)
+
+	// create dummy vblade
+	var vblade = Linspace(lout, lout, N)
+	vblade.MulElemVec(vblade, phidot) // vblade = phidot * lout
+
+	var u1 = Linspace(0, 0, N)
+	u1.AddVec(u1, vblade)
+	var vv = Linspace(-vb*math.Cos(oarangle), -vb*math.Cos(oarangle), N)
+	u1.AddVec(u1, vv)
+
+	var up = vb * math.Sin(oarangle)
+	var area = rigging.bladearea()
+
+	var uv = Linspace(0, 0, N)
+	var av = Linspace(0, 0, N)
+	var CLv = Linspace(0, 0, N)
+	var CDv = Linspace(0, 0, N)
+	for i := 0; i < N; i++ {
+		var u = math.Sqrt(math.Pow(u1.AtVec(i), 2) + math.Pow(up, 2.0))
+		a = math.Atan(u1.AtVec(i) / up)
+		CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+		CL = CLmax * math.Sin(2*a)
+		FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+		FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+
+		FR = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+		Fprop = FR * math.Cos(oarangle)
+
+		uv.SetVec(i, u)
+		av.SetVec(i, a)
+		CLv.SetVec(i, CL)
+		CDv.SetVec(i, CD)
+
+	}
+
+	return []float64{phidot1, FR, Fprop, FL, FD, CL, CD, a}
 
 }
