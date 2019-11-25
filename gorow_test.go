@@ -14,21 +14,21 @@ func GetTolerance(got float64, want float64) bool {
 }
 
 func TestDragEq(t *testing.T) {
-	var got = dragEq(100, 4.5, 3.5, 0, 0)
+	var got = DragEq(100, 4.5, 3.5, 0, 0)
 	var want = 74.445191
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
 	}
 
-	got = dragEq(100, 4.5, 3.5, 1, 1)
+	got = DragEq(100, 4.5, 3.5, 1, 1)
 	want = 70.875
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
 	}
 
-	got = dragEq(100, 4.5, 0, 0, 0)
+	got = DragEq(100, 4.5, 0, 0, 0)
 	want = 74.445191
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
@@ -47,7 +47,7 @@ func TestDRecovery(t *testing.T) {
 }
 
 func TestRig(t *testing.T) {
-	var rg = newRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	var got = rg.buitenhand()
 	var want = 0.545856
@@ -110,7 +110,7 @@ func TestDStroke(t *testing.T) {
 }
 
 func TestBasics(t *testing.T) {
-	var rg = newRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	var mc = 80.0
 	var mb = 14.0
 
@@ -152,20 +152,20 @@ func TestBladeForce(t *testing.T) {
 		-0.15270692145314926,
 	}
 
-	var rg = newRig(0.9, 14, 2.885, 1.60, 0.88, Scull,
+	var rg = NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull,
 		-0.93, 822.e-4, 0.46,
 		1, 1.0)
 
-	var got = bladeForce(-0.6, rg, 3.5, 100)
+	var got = BladeForce(-0.6, rg, 3.5, 100)
 
 	if len(got) != len(want) {
-		t.Errorf("Function bladeForce did not return the expected slice. Got %d, wanted %d",
+		t.Errorf("Function BladeForce did not return the expected slice. Got %d, wanted %d",
 			len(got), len(want))
 	}
 
 	for i := 0; i < len(want); i++ {
 		if !GetTolerance(got[i], want[i]) {
-			t.Errorf("Function bladeForce, element %d, expected %f, got %f",
+			t.Errorf("Function BladeForce, element %d, expected %f, got %f",
 				i, want[i], got[i])
 		}
 	}

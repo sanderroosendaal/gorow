@@ -49,7 +49,7 @@ func Constvec(value float64, N int) *mat.VecDense {
 	return r
 }
 
-func dragEq(displacement float64, velo float64,
+func DragEq(displacement float64, velo float64,
 	alfaref float64, doprint int, constantdrag int) float64 {
 	if alfaref == 0 {
 		alfaref = 3.5
@@ -164,7 +164,7 @@ func deFootboard(mc, mb, vs1, vs2 float64) float64 {
 	return (de)
 }
 
-type rig struct {
+type Rig struct {
 	lin         float64
 	mb          float64
 	bladelength float64
@@ -178,49 +178,49 @@ type rig struct {
 	_Bladearea  float64
 }
 
-func (rg *rig) spread() float64 {
+func (rg *Rig) spread() float64 {
 	if rg.roworscull == Scull {
 		return (rg.span / 2.)
 	}
 	return rg._Spread
 }
 
-func (rg *rig) overlap() float64 {
+func (rg *Rig) overlap() float64 {
 	if rg.roworscull == Scull {
 		return 2.*rg.lin - rg.span
 	}
 	return rg.lin - rg._Spread
 }
 
-func (rg *rig) buitenhand() float64 {
+func (rg *Rig) buitenhand() float64 {
 	if rg.roworscull == Scull {
 		return rg.span - 2.*rg.lin*math.Cos(rg.catchangle)
 	}
 	return rg._Spread - rg.lin*math.Cos(rg.catchangle)
 }
 
-func (rg *rig) bladearea() float64 {
+func (rg *Rig) bladearea() float64 {
 	if rg.roworscull == Scull {
 		return 2. * rg._Bladearea
 	}
 	return rg._Bladearea
 }
 
-func (rg *rig) dcatch() float64 {
+func (rg *Rig) dcatch() float64 {
 	return (rg.lin * math.Sin(rg.catchangle))
 }
 
-func (rg *rig) oarangle(x float64) float64 {
+func (rg *Rig) oarangle(x float64) float64 {
 	var dist = rg.dcatch() + x
 	var angle = math.Asin(dist / rg.lin)
 	return (angle)
 }
 
-func newRig(lin float64, mb float64, lscull float64,
+func NewRig(lin float64, mb float64, lscull float64,
 	span float64, spread float64, roworscull string,
 	catchangle float64, bladearea float64, bladelength float64,
-	Nrowers int32, dragform float64) *rig {
-	return &rig{
+	Nrowers int32, dragform float64) *Rig {
+	return &Rig{
 		lin:         lin,
 		mb:          mb,
 		bladelength: bladelength,
@@ -234,7 +234,7 @@ func newRig(lin float64, mb float64, lscull float64,
 	}
 }
 
-func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
+func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	var phidot1 = 1.8192760229325606
 	var FR = 99.98194431474082
 	var Fprop = 82.51865949087183
