@@ -6,23 +6,29 @@ import (
 )
 
 const tolerance = 0.000001
+const relativetolerance = 0.001
+
+func GetTolerance(got float64, want float64) bool {
+	var diff = math.Abs((got - want) / (want))
+	return diff < relativetolerance
+}
 
 func TestDragEq(t *testing.T) {
-	var got = dragEq(100, 4.5, 3.5, 0, 0)
+	var got = DragEq(100, 4.5, 3.5, 0, 0)
 	var want = 74.445191
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
 	}
 
-	got = dragEq(100, 4.5, 3.5, 1, 1)
+	got = DragEq(100, 4.5, 3.5, 1, 1)
 	want = 70.875
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
 	}
 
-	got = dragEq(100, 4.5, 0, 0, 0)
+	got = DragEq(100, 4.5, 0, 0, 0)
 	want = 74.445191
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
@@ -41,7 +47,7 @@ func TestDRecovery(t *testing.T) {
 }
 
 func TestRig(t *testing.T) {
-	var rg = newRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	var got = rg.buitenhand()
 	var want = 0.545856
@@ -104,7 +110,7 @@ func TestDStroke(t *testing.T) {
 }
 
 func TestBasics(t *testing.T) {
-	var rg = newRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	var mc = 80.0
 	var mb = 14.0
 
@@ -136,28 +142,31 @@ func TestDFootboard(t *testing.T) {
 
 func TestBladeForce(t *testing.T) {
 	var want = []float64{
-		1.7498034669231506,
-		99.99941828917106,
-		79.60791676433922,
-		99.10872918689238,
-		13.317036349422086,
-		0.2639699809003707,
-		0.035469104080404316,
-		0.13356793479539003,
+		1.8192760229325606,
+		99.98194431474082,
+		82.51865949087183,
+		-98.81844828718056,
+		15.208664210566168,
+		-0.30068789227801074,
+		0.046277403309847434,
+		-0.15270692145314926,
 	}
 
-	var rg = newRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	var rg = NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull,
+		-0.93, 822.e-4, 0.46,
+		1, 1.0)
 
-	var got = bladeForce(0.65, rg, 3.5, 100)
+	var got = BladeForce(-0.6, rg, 3.5, 100)
 
 	if len(got) != len(want) {
-		t.Errorf("BladeForce didn't produce the right number of answers. Expecting %d, got %d\n", len(want), len(got))
+		t.Errorf("Function BladeForce did not return the expected slice. Got %d, wanted %d",
+			len(got), len(want))
 	}
 
-	for i := 0; i < len(got); i++ {
-		if got[i] != want[i] {
-			t.Errorf("BladeForce error. Expected %f, got %f\n", want[i], got[i])
+	for i := 0; i < len(want); i++ {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function BladeForce, element %d, expected %f, got %f",
+				i, want[i], got[i])
 		}
 	}
-
 }

@@ -6,6 +6,7 @@ package gorow
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -22,18 +23,33 @@ const CLmax = 1.0
 // Scull string
 const Scull = "scull"
 
+const N = 50
+
 // Linspace helper function to create a linear range, like np.linspace
-func Linspace(start float64, stop float64, N int) *mat.VecDense {
+func VecLinspace(start float64, stop float64, N int) *mat.VecDense {
+	return mat.NewVecDense(N, Linspace(start, stop, N))
+}
+
+func Linspace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
 	var step = (stop - start) / float64(N)
 	for x := range rnge {
 		rnge[x] = start + step*float64(x)
 	}
+
+	return rnge
+}
+
+func Constvec(value float64, N int) *mat.VecDense {
+	rnge := make([]float64, N)
+	for i := range rnge {
+		rnge[i] = value
+	}
 	var r = mat.NewVecDense(N, rnge)
 	return r
 }
 
-func dragEq(displacement float64, velo float64,
+func DragEq(displacement float64, velo float64,
 	alfaref float64, doprint int, constantdrag int) float64 {
 	if alfaref == 0 {
 		alfaref = 3.5
@@ -148,7 +164,7 @@ func deFootboard(mc, mb, vs1, vs2 float64) float64 {
 	return (de)
 }
 
-type rig struct {
+type Rig struct {
 	lin         float64
 	mb          float64
 	bladelength float64
@@ -162,49 +178,49 @@ type rig struct {
 	_Bladearea  float64
 }
 
-func (rg *rig) spread() float64 {
+func (rg *Rig) spread() float64 {
 	if rg.roworscull == Scull {
 		return (rg.span / 2.)
 	}
 	return rg._Spread
 }
 
-func (rg *rig) overlap() float64 {
+func (rg *Rig) overlap() float64 {
 	if rg.roworscull == Scull {
 		return 2.*rg.lin - rg.span
 	}
 	return rg.lin - rg._Spread
 }
 
-func (rg *rig) buitenhand() float64 {
+func (rg *Rig) buitenhand() float64 {
 	if rg.roworscull == Scull {
 		return rg.span - 2.*rg.lin*math.Cos(rg.catchangle)
 	}
 	return rg._Spread - rg.lin*math.Cos(rg.catchangle)
 }
 
-func (rg *rig) bladearea() float64 {
+func (rg *Rig) bladearea() float64 {
 	if rg.roworscull == Scull {
 		return 2. * rg._Bladearea
 	}
 	return rg._Bladearea
 }
 
-func (rg *rig) dcatch() float64 {
+func (rg *Rig) dcatch() float64 {
 	return (rg.lin * math.Sin(rg.catchangle))
 }
 
-func (rg *rig) oarangle(x float64) float64 {
+func (rg *Rig) oarangle(x float64) float64 {
 	var dist = rg.dcatch() + x
 	var angle = math.Asin(dist / rg.lin)
 	return (angle)
 }
 
-func newRig(lin float64, mb float64, lscull float64,
+func NewRig(lin float64, mb float64, lscull float64,
 	span float64, spread float64, roworscull string,
 	catchangle float64, bladearea float64, bladelength float64,
-	Nrowers int32, dragform float64) *rig {
-	return &rig{
+	Nrowers int32, dragform float64) *Rig {
+	return &Rig{
 		lin:         lin,
 		mb:          mb,
 		bladelength: bladelength,
@@ -222,6 +238,7 @@ func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
 	var lin = rigging.lin
 	var lscull = rigging.lscull
 	var lout = lscull - lin
+	var area = rigging.bladearea()
 
 	const N = 50
 
@@ -237,41 +254,57 @@ func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
 	var phidot = Linspace(phidot0, 2*math.Abs(phidot0), N)
+	var phidotv = mat.NewVecDense(N, phidot)
+	var vblade = Constvec(lout, N)
 
-	// create dummy vblade
-	var vblade = Linspace(lout, lout, N)
-	vblade.MulElemVec(vblade, phidot) // vblade = phidot * lout
+	vblade.MulElemVec(vblade, phidotv)
 
-	var u1 = Linspace(0, 0, N)
-	u1.AddVec(u1, vblade)
-	var vv = Linspace(-vb*math.Cos(oarangle), -vb*math.Cos(oarangle), N)
-	u1.AddVec(u1, vv)
-
+	var u1v = make([]float64, N)
 	var up = vb * math.Sin(oarangle)
-	var area = rigging.bladearea()
+	var av = make([]float64, N)
+	var FRv = make([]float64, N)
 
-	var uv = Linspace(0, 0, N)
-	var av = Linspace(0, 0, N)
-	var CLv = Linspace(0, 0, N)
-	var CDv = Linspace(0, 0, N)
+	var wg sync.WaitGroup
+	wg.Add(N)
+
 	for i := 0; i < N; i++ {
-		var u = math.Sqrt(math.Pow(u1.AtVec(i), 2) + math.Pow(up, 2.0))
-		a = math.Atan(u1.AtVec(i) / up)
-		CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
-		CL = CLmax * math.Sin(2*a)
-		FL = 0.5 * CL * rho * area * math.Pow(u, 2)
-		FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+		go func(i int) {
+			defer wg.Done()
+			var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
+			u1v[i] = u1
+			var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
+			a = math.Atan(u1 / up)                               // angle of attack
+			CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+			CL = CLmax * math.Sin(2*a)
 
-		FR = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
-		Fprop = FR * math.Cos(oarangle)
-
-		uv.SetVec(i, u)
-		av.SetVec(i, a)
-		CLv.SetVec(i, CL)
-		CDv.SetVec(i, CD)
-
+			FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+			FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+			FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+			Fprop = FRv[i] * math.Cos(oarangle)
+			av[i] = a
+		}(i)
 	}
 
-	return []float64{phidot1, FR, Fprop, FL, FD, CL, CD, a}
+	wg.Wait()
 
+	phidot1 = srinterpol1(phidot, FRv, fblade)
+
+	var vblade1 = phidot1 * lout
+	var u1 = vblade1 - vb*math.Cos(oarangle)
+	up = vb * math.Sin(oarangle)
+
+	var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
+	a = math.Atan(u1 / up)                               // angle of attack
+
+	CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+	CL = CLmax * math.Sin(2.*a)
+
+	FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+	FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+	FR = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+	Fprop = FR * math.Cos(oarangle)
+
+	return []float64{
+		phidot1, FR, Fprop, FL, FD, CL, CD, a,
+	}
 }
