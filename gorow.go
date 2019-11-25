@@ -23,14 +23,16 @@ const CLmax = 1.0
 // Scull string
 const Scull = "scull"
 
+// N Number for bladeforce
 const N = 50
 
-// Linspace helper function to create a linear range, like np.linspace
-func VecLinspace(start float64, stop float64, N int) *mat.VecDense {
-	return mat.NewVecDense(N, Linspace(start, stop, N))
+// VecLinSpace to create a linear range as a gonum VecDense
+func VecLinSpace(start float64, stop float64, N int) *mat.VecDense {
+	return mat.NewVecDense(N, LinSpace(start, stop, N))
 }
 
-func Linspace(start float64, stop float64, N int) []float64 {
+// LinSpace to create a linear range
+func LinSpace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
 	var step = (stop - start) / float64(N)
 	for x := range rnge {
@@ -40,6 +42,7 @@ func Linspace(start float64, stop float64, N int) []float64 {
 	return rnge
 }
 
+// Constvec creates a VecDense with a single value
 func Constvec(value float64, N int) *mat.VecDense {
 	rnge := make([]float64, N)
 	for i := range rnge {
@@ -49,6 +52,7 @@ func Constvec(value float64, N int) *mat.VecDense {
 	return r
 }
 
+// DragEq calculates drag
 func DragEq(displacement float64, velo float64,
 	alfaref float64, doprint int, constantdrag int) float64 {
 	if alfaref == 0 {
@@ -164,6 +168,7 @@ func deFootboard(mc, mb, vs1, vs2 float64) float64 {
 	return (de)
 }
 
+// Rig holds boat rigging parameters and has methods to manipulate them
 type Rig struct {
 	lin         float64
 	mb          float64
@@ -216,10 +221,39 @@ func (rg *Rig) oarangle(x float64) float64 {
 	return (angle)
 }
 
+// NewRig initiates a new boat rigging
 func NewRig(lin float64, mb float64, lscull float64,
 	span float64, spread float64, roworscull string,
 	catchangle float64, bladearea float64, bladelength float64,
 	Nrowers int32, dragform float64) *Rig {
+	if lin == 0 {
+		lin = 0.9
+	}
+	if mb == 0 {
+		mb = 14
+	}
+	if lscull == 0 {
+		lscull = 2.885
+	}
+	if span == 0 {
+		span = 1.60
+	}
+
+	if catchangle == 0 {
+		catchangle = -0.93
+	}
+	if bladearea == 0 {
+		bladearea = 822.e-4
+	}
+	if bladelength == 0 {
+		bladelength = 0.46
+	}
+	if Nrowers == 0 {
+		Nrowers = 1
+	}
+	if dragform == 0 {
+		dragform = 1.0
+	}
 	return &Rig{
 		lin:         lin,
 		mb:          mb,
@@ -234,7 +268,8 @@ func NewRig(lin float64, mb float64, lscull float64,
 	}
 }
 
-func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
+// BladeForce calculates the blade slip given a handle force
+func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	var lin = rigging.lin
 	var lscull = rigging.lscull
 	var lout = lscull - lin
@@ -243,8 +278,8 @@ func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
 	const N = 50
 
 	// temporary variables
-	var phidot1 = 1.7498034669231506
-	var FR = 99.99941828917106
+	var phidot1 float64 // = 1.7498034669231506
+	var FR float64      // = 99.99941828917106
 	var Fprop = 79.60791676433922
 	var FL = 99.10872918689238
 	var FD = 13.317036349422086
@@ -253,7 +288,7 @@ func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
 	var a = 0.13356793479539003
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
-	var phidot = Linspace(phidot0, 2*math.Abs(phidot0), N)
+	var phidot = LinSpace(phidot0, 2*math.Abs(phidot0), N)
 	var phidotv = mat.NewVecDense(N, phidot)
 	var vblade = Constvec(lout, N)
 

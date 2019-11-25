@@ -6,7 +6,7 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.001
+const relativetolerance = 0.05
 
 func GetTolerance(got float64, want float64) bool {
 	var diff = math.Abs((got - want) / (want))
@@ -41,7 +41,52 @@ func TestDRecovery(t *testing.T) {
 	var got = dRecovery(0.01, 4.5, 1.0, 0.1, 80., 14., 3.5, 100.)
 	var want = 0.005681
 	if math.Abs(got-want) > tolerance {
-		t.Errorf("dRecovery equation gave incorrect result. Got %f, wanted %f\n",
+		t.Errorf("dRecovery equation gave incorrect result. Got %f, wanted %f.\n",
+			got, want)
+	}
+}
+
+func TestCrew(t *testing.T) {
+	var c = NewCrew(80, 1.4, 30, 0.5, 1000., 1000.)
+	var got = c.strokelength
+	var want = 1.4
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew stroke length incorrect. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 1.2261495151704724
+	got = c.vha(1, 0.3)
+
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vha. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 0.8155612244897958
+	got = c.vcm(1, 0.3)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
+	var wantv = []float64{0.83469388, 0.91816327, 1.00163265}
+	var vhandle = []float64{1, 1.1, 1.2}
+	var xhandle = []float64{0.2, 0.2, 0.2}
+	var gotv = c.vcma(vhandle, xhandle)
+
+	for i := range wantv {
+		if math.Abs(gotv[i]-wantv[i]) > tolerance {
+			t.Errorf("Crew vcma, got %f, wanted %f", gotv[i], wantv[i])
+		}
+	}
+}
+
+func TestRigZero(t *testing.T) {
+	var rg = NewRig(0, 0, 0, 0, 0, Scull, 0, 0, 0, 0, 0)
+
+	var got = rg.buitenhand()
+	var want = 0.523899
+
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("buitenhand equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
 	}
 }
