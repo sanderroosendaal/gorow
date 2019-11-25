@@ -6,6 +6,7 @@ package gorow
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -260,32 +261,40 @@ func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
 	var av = make([]float64, N)
 	var FRv = make([]float64, N)
 
-	for i := 0; i < N; i++ {
-		var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
-		u1v[i] = u1
-		var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
-		a = math.Atan(u1 / up)                               // angle of attack
-		CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
-		CL = CLmax * math.Sin(2*a)
+	var wg sync.WaitGroup
+	wg.Add(N)
 
-		FL = 0.5 * CL * rho * area * math.Pow(u, 2)
-		FD = 0.5 * CD * rho * area * math.Pow(u, 2)
-		FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
-		Fprop = FRv[i] * math.Cos(oarangle)
-		av[i] = a
+	for i := 0; i < N; i++ {
+		go func(i int) {
+			defer wg.Done()
+			var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
+			u1v[i] = u1
+			var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
+			a = math.Atan(u1 / up)                               // angle of attack
+			CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+			CL = CLmax * math.Sin(2*a)
+
+			FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+			FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+			FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+			Fprop = FRv[i] * math.Cos(oarangle)
+			av[i] = a
+		}(i)
 	}
+
+	wg.Wait()
 
 	phidot1 = srinterpol1(phidot, FRv, fblade)
 
-	var vblade1 = phidot1*lout
-	var u1 = vblade1-vb*math.Cos(oarangle)
-	up = vb*math.Sin(oarangle)
+	var vblade1 = phidot1 * lout
+	var u1 = vblade1 - vb*math.Cos(oarangle)
+	up = vb * math.Sin(oarangle)
 
-	var u = math.Sqrt(math.Pow(u1,2) + math.Pow(up,2)) // fluid velocity
-	a = math.Atan(u1/up)   // angle of attack
+	var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
+	a = math.Atan(u1 / up)                               // angle of attack
 
-	CD = 2*CLmax*math.Pow(math.Sin(a),2)
-	CL = CLmax*math.Sin(2.*a)
+	CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+	CL = CLmax * math.Sin(2.*a)
 
 	FL = 0.5 * CL * rho * area * math.Pow(u, 2)
 	FD = 0.5 * CD * rho * area * math.Pow(u, 2)
