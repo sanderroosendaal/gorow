@@ -22,12 +22,27 @@ const CLmax = 1.0
 // Scull string
 const Scull = "scull"
 
+const N = 50
+
 // Linspace helper function to create a linear range, like np.linspace
-func Linspace(start float64, stop float64, N int) *mat.VecDense {
+func VecLinspace(start float64, stop float64, N int) *mat.VecDense {
+	return mat.NewVecDense(N, Linspace(start, stop, N))
+}
+
+func Linspace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
 	var step = (stop - start) / float64(N)
 	for x := range rnge {
 		rnge[x] = start + step*float64(x)
+	}
+
+	return rnge
+}
+
+func Constvec(value float64, N int) *mat.VecDense {
+	rnge := make([]float64, N)
+	for i := range rnge {
+		rnge[i] = value
 	}
 	var r = mat.NewVecDense(N, rnge)
 	return r
@@ -218,15 +233,66 @@ func newRig(lin float64, mb float64, lscull float64,
 	}
 }
 
-func bladeForce(oarangle float64, rigging rig, vb, fblade float64) {
+func bladeForce(oarangle float64, rigging *rig, vb, fblade float64) []float64 {
+	var phidot1 = 1.8192760229325606
+	var FR = 99.98194431474082
+	var Fprop = 82.51865949087183
+	var FL = -98.81844828718056
+	var FD = 15.208664210566168
+	var CL = -0.30068789227801074
+	var CD = 0.046277403309847434
+	var a = -0.15270692145314926
+
 	var lin = rigging.lin
 	var lscull = rigging.lscull
 	var lout = lscull - lin
+	var area = rigging.bladearea()
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
-	var phidot = Linspace(phidot0, 2*math.Abs(phidot0), 50)
-	var vblade = Linspace(lout, lout, 50)
+	var phidot = Linspace(phidot0, 2*math.Abs(phidot0), N)
+	var phidotv = mat.NewVecDense(N, phidot)
+	var vblade = Constvec(lout, N)
 
-	vblade.MulElemVec(vblade, phidot)
+	vblade.MulElemVec(vblade, phidotv)
 
+	var u1v = make([]float64, N)
+	var up = vb * math.Sin(oarangle)
+	var av = make([]float64, N)
+	var FRv = make([]float64, N)
+
+	for i := 0; i < N; i++ {
+		var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
+		u1v[i] = u1
+		var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
+		a = math.Atan(u1 / up)                               // angle of attack
+		CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+		CL = CLmax * math.Sin(2*a)
+
+		FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+		FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+		FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+		Fprop = FRv[i] * math.Cos(oarangle)
+		av[i] = a
+	}
+
+	phidot1 = srinterpol1(phidot, FRv, fblade)
+
+	var vblade1 = phidot1*lout
+	var u1 = vblade1-vb*math.Cos(oarangle)
+	up = vb*math.Sin(oarangle)
+
+	var u = math.Sqrt(math.Pow(u1,2) + math.Pow(up,2)) // fluid velocity
+	a = math.Atan(u1/up)   // angle of attack
+
+	CD = 2*CLmax*math.Pow(math.Sin(a),2)
+	CL = CLmax*math.Sin(2.*a)
+
+	FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+	FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+	FR = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+	Fprop = FR * math.Cos(oarangle)
+
+	return []float64{
+		phidot1, FR, Fprop, FL, FD, CL, CD, a,
+	}
 }

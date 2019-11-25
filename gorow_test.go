@@ -6,6 +6,12 @@ import (
 )
 
 const tolerance = 0.000001
+const relativetolerance = 0.001
+
+func GetTolerance(got float64, want float64) bool {
+	var diff = math.Abs((got - want) / (want))
+	return diff < relativetolerance
+}
 
 func TestDragEq(t *testing.T) {
 	var got = dragEq(100, 4.5, 3.5, 0, 0)
@@ -131,5 +137,36 @@ func TestDFootboard(t *testing.T) {
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("dStroke equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
+	}
+}
+
+func TestBladeForce(t *testing.T) {
+	var want = []float64{
+		1.8192760229325606,
+		99.98194431474082,
+		82.51865949087183,
+		-98.81844828718056,
+		15.208664210566168,
+		-0.30068789227801074,
+		0.046277403309847434,
+		-0.15270692145314926,
+	}
+
+	var rg = newRig(0.9, 14, 2.885, 1.60, 0.88, Scull,
+		-0.93, 822.e-4, 0.46,
+		1, 1.0)
+
+	var got = bladeForce(-0.6, rg, 3.5, 100)
+
+	if len(got) != len(want) {
+		t.Errorf("Function bladeForce did not return the expected slice. Got %d, wanted %d",
+			len(got), len(want))
+	}
+
+	for i := 0; i < len(want); i++ {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function bladeForce, element %d, expected %f, got %f",
+				i, want[i], got[i])
+		}
 	}
 }
