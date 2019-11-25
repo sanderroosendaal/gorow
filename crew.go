@@ -34,6 +34,21 @@ func vha(vcm, strokelength, xhandle float64) float64 {
 	return vh
 }
 
+// ForceProfile interface forceprofile
+type ForceProfile interface {
+	forceprofile(favg, x float64) float64
+}
+
+// StrongMiddle stroke profile with strong middle
+type StrongMiddle struct {
+	frac float64
+}
+
+func (s StrongMiddle) forceprofile(favg, x float64) float64 {
+	var f = (s.frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + (1.-s.frac)*favg
+	return f
+}
+
 // Crew class with rower quantities
 type Crew struct {
 	mc           float64
@@ -42,6 +57,7 @@ type Crew struct {
 	frac         float64
 	// recprofile = sinusrecovery()
 	// strokeprofile = trapezium(x1=0.15,x2=0.5,h2=0.9)
+	strokeprofile ForceProfile
 	// technique = technique_meas()
 	maxpower float64
 	maxforce float64
@@ -61,6 +77,7 @@ func (c *Crew) vha(vcm, xhandle float64) float64 {
 
 // NewCrew inits Crew instance
 func NewCrew(mc float64, strokelength float64, tempo float64, frac float64,
+	strokeprofile ForceProfile,
 	maxpower float64, maxforce float64) *Crew {
 	return &Crew{
 		mc:           mc,

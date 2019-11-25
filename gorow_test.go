@@ -47,7 +47,7 @@ func TestDRecovery(t *testing.T) {
 }
 
 func TestCrew(t *testing.T) {
-	var c = NewCrew(80, 1.4, 30, 0.5, 1000., 1000.)
+	var c = NewCrew(80, 1.4, 30, 0.5, StrongMiddle{frac: 0.5}, 1000., 1000.)
 	var got = c.strokelength
 	var want = 1.4
 	if math.Abs(got-want) > tolerance {
