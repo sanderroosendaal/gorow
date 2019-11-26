@@ -151,6 +151,98 @@ func (r FlatRecovery) dxhandle(vavg, trecovery, time float64) float64 {
 	return -time / trecovery
 }
 
+// SinusRecovery recovery profile
+type SinusRecovery struct {
+}
+
+func (r SinusRecovery) vhandle(vavg, trecovery, time float64) float64 {
+	vhandmax := -math.Pi * vavg / 2.
+	vhand := vhandmax * math.Sin(math.Pi*time/trecovery)
+	return vhand
+}
+
+func (r SinusRecovery) dxhandle(vavg, trecovery, time float64) float64 {
+	dx := 0.5 * (math.Cos(math.Pi*time/trecovery) - 1)
+	return dx
+}
+
+// SinusRecovery2 recovery profile
+type SinusRecovery2 struct {
+	p1           float64
+	strokelength float64
+}
+
+func (r SinusRecovery2) vhandle(vavg, trecovery, time float64) float64 {
+	w1 := math.Pi / r.p1
+	w := w1 / trecovery
+	vhandmax := w * r.strokelength / (1 - math.Cos(w*trecovery))
+	vhand := -vhandmax * math.Sin(w*time)
+	return vhand
+}
+
+func (r SinusRecovery2) dxhandle(vavg, trecovery, time float64) float64 {
+	w1 := math.Pi / r.p1
+	w := w1 / trecovery
+	vhandmax := w * r.strokelength / (1 - math.Cos(w*trecovery))
+	dx := vhandmax * (math.Cos(w*time) - 1) / (r.strokelength)
+	return dx
+}
+
+// CosinusRecovery recovery profile
+type CosinusRecovery struct {
+	p1           float64
+	strokelength float64
+}
+
+func (r CosinusRecovery) vhandle(vavg, trecovery, time float64) float64 {
+	w1 := math.Pi / (2 * r.p1)
+	w := w1 / trecovery
+	vhandmax := w * r.strokelength / (math.Sin(w * trecovery))
+	vhand := -vhandmax * math.Cos(w*time)
+	return vhand
+}
+
+func (r CosinusRecovery) dxhandle(vavg, trecovery, time float64) float64 {
+	w1 := math.Pi / (2 * r.p1)
+	w := w1 / trecovery
+	vhandmax := w * r.strokelength / (math.Sin(w * trecovery))
+	dx := vhandmax * math.Sin(w*time) / (r.strokelength)
+	return dx
+}
+
+// GenericRecovery not implemented
+
+// CombiRecovery not implemented
+
+// TriangleRecovery recovery profile
+type TriangleRecovery struct {
+	x1 float64
+}
+
+func (r TriangleRecovery) vhandle(vavg, trecovery, time float64) float64 {
+	trel := time / trecovery
+	if trel < r.x1 {
+		vhand := -2 * vavg * trel / r.x1
+		return vhand
+	}
+	vhand := -2 * vavg * (1. - trel) / (1 - r.x1)
+	return vhand
+}
+
+func (r TriangleRecovery) dxhandle(vavg, trecovery, time float64) float64 {
+	trel := time / trecovery
+	if trel < r.x1 {
+		dx := math.Pow(trel, 2) / r.x1
+		return dx
+	}
+	dx := r.x1
+	dx -= (math.Pow(1-trel, 2)) / (1 - r.x1)
+	dx += 1 - r.x1
+	return -dx
+}
+
+// RealisticRecovery not implemented
+
 // Crew class with rower quantities
 type Crew struct {
 	mc           float64

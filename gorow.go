@@ -6,7 +6,6 @@ package gorow
 import (
 	"fmt"
 	"math"
-	"sync"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -180,12 +179,13 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	// temporary variables
 	var phidot1 float64 // = 1.7498034669231506
 	var FR float64      // = 99.99941828917106
-	var Fprop = 79.60791676433922
-	var FL = 99.10872918689238
-	var FD = 13.317036349422086
-	var CL = 0.2639699809003707
-	var CD = 0.035469104080404316
-	var a = 0.13356793479539003
+
+	var Fprop float64
+	var FL float64
+	var FD float64
+	var CL float64
+	var CD float64
+	var a float64
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
 	var phidot = LinSpace(phidot0, 2*math.Abs(phidot0), N)
@@ -199,28 +199,28 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	var av = make([]float64, N)
 	var FRv = make([]float64, N)
 
-	var wg sync.WaitGroup
-	wg.Add(N)
+	// var wg sync.WaitGroup
+	// wg.Add(N)
 
 	for i := 0; i < N; i++ {
-		go func(i int) {
-			defer wg.Done()
-			var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
-			u1v[i] = u1
-			var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
-			a = math.Atan(u1 / up)                               // angle of attack
-			CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
-			CL = CLmax * math.Sin(2*a)
+		// go func(i int) {
+		// defer wg.Done()
+		var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
+		u1v[i] = u1
+		var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
+		a = math.Atan(u1 / up)                               // angle of attack
+		CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+		CL = CLmax * math.Sin(2*a)
 
-			FL = 0.5 * CL * rho * area * math.Pow(u, 2)
-			FD = 0.5 * CD * rho * area * math.Pow(u, 2)
-			FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
-			Fprop = FRv[i] * math.Cos(oarangle)
-			av[i] = a
-		}(i)
+		FL = 0.5 * CL * rho * area * math.Pow(u, 2)
+		FD = 0.5 * CD * rho * area * math.Pow(u, 2)
+		FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+		// Fprop = FRv[i] * math.Cos(oarangle)
+		av[i] = a
+		// } (i)
 	}
 
-	wg.Wait()
+	// wg.Wait()
 
 	phidot1 = srinterpol1(phidot, FRv, fblade)
 

@@ -47,7 +47,7 @@ func TestDRecovery(t *testing.T) {
 }
 
 func TestCrew(t *testing.T) {
-	var c = NewCrew(80, 1.4, 30, 0.5, FlatRecovery{}, StrongMiddle{frac: 0.5}, 1000., 1000.)
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{x1: 0.15, x2: 0.5, h1: 1.0, h2: 0.9}, 1000., 1000.)
 	var got = c.strokelength
 	var want = 1.4
 	if math.Abs(got-want) > tolerance {
@@ -78,10 +78,10 @@ func TestCrew(t *testing.T) {
 		}
 	}
 
-	want = -0.5
+	want = -0.7853981633974483
 	got = c.vhandle(0.5, 2.0, 1.0)
 	if math.Abs(got-want) > tolerance {
-		t.Errorf("Crew flat recovery error, got %f, wanted %f", got, want)
+		t.Errorf("Crew sinus recovery error, got %f, wanted %f", got, want)
 	}
 
 	want = -0.5
