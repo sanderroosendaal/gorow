@@ -47,7 +47,7 @@ func TestDRecovery(t *testing.T) {
 }
 
 func TestCrew(t *testing.T) {
-	var c = NewCrew(80, 1.4, 30, 0.5, StrongMiddle{frac: 0.5}, 1000., 1000.)
+	var c = NewCrew(80, 1.4, 30, 0.5, FlatRecovery{}, StrongMiddle{frac: 0.5}, 1000., 1000.)
 	var got = c.strokelength
 	var want = 1.4
 	if math.Abs(got-want) > tolerance {
@@ -76,6 +76,18 @@ func TestCrew(t *testing.T) {
 		if math.Abs(gotv[i]-wantv[i]) > tolerance {
 			t.Errorf("Crew vcma, got %f, wanted %f", gotv[i], wantv[i])
 		}
+	}
+
+	want = -0.5
+	got = c.vhandle(0.5, 2.0, 1.0)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew flat recovery error, got %f, wanted %f", got, want)
+	}
+
+	want = -0.5
+	got = c.dxhandle(0.5, 2.0, 1.0)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew flat recovery error, got %f, wanted %f", got, want)
 	}
 }
 

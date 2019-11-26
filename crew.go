@@ -39,6 +39,12 @@ type ForceProfile interface {
 	forceprofile(favg, x float64) float64
 }
 
+// RecoveryProfile interface
+type RecoveryProfile interface {
+	vhandle(vavg, trecovery, time float64) float64
+	dxhandle(vavg, trecovery, time float64) float64
+}
+
 // StrongMiddle stroke profile with strong middle
 type StrongMiddle struct {
 	frac float64
@@ -133,6 +139,18 @@ func (s StrongEnd) forceprofile(favg, x float64) float64 {
 	return f
 }
 
+// FlatRecovery recovery profile
+type FlatRecovery struct {
+}
+
+func (r FlatRecovery) vhandle(vavg, trecovery, time float64) float64 {
+	return -vavg
+}
+
+func (r FlatRecovery) dxhandle(vavg, trecovery, time float64) float64 {
+	return -time / trecovery
+}
+
 // Crew class with rower quantities
 type Crew struct {
 	mc           float64
@@ -140,6 +158,7 @@ type Crew struct {
 	tempo        float64
 	frac         float64
 	// recprofile = sinusrecovery()
+	recoveryprofile RecoveryProfile
 	// strokeprofile = trapezium(x1=0.15,x2=0.5,h2=0.9)
 	strokeprofile ForceProfile
 	// technique = technique_meas()
@@ -159,17 +178,26 @@ func (c *Crew) vha(vcm, xhandle float64) float64 {
 	return vha(vcm, c.strokelength, xhandle)
 }
 
+func (c *Crew) vhandle(vavg, trecovery, time float64) float64 {
+	return c.recoveryprofile.vhandle(vavg, trecovery, time)
+}
+
+func (c *Crew) dxhandle(vavg, trecovery, time float64) float64 {
+	return c.recoveryprofile.dxhandle(vavg, trecovery, time)
+}
+
 // NewCrew inits Crew instance
 func NewCrew(mc float64, strokelength float64, tempo float64, frac float64,
-	strokeprofile ForceProfile,
+	recoveryprofile RecoveryProfile, strokeprofile ForceProfile,
 	maxpower float64, maxforce float64) *Crew {
 	return &Crew{
-		mc:            mc,
-		strokelength:  strokelength,
-		strokeprofile: strokeprofile,
-		tempo:         tempo,
-		frac:          frac,
-		maxpower:      maxpower,
-		maxforce:      maxforce,
+		mc:              mc,
+		strokelength:    strokelength,
+		recoveryprofile: recoveryprofile,
+		strokeprofile:   strokeprofile,
+		tempo:           tempo,
+		frac:            frac,
+		maxpower:        maxpower,
+		maxforce:        maxforce,
 	}
 }
