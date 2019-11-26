@@ -243,3 +243,90 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 		phidot1, FR, Fprop, FL, FD, CL, CD, a,
 	}
 }
+
+// EnergyBalance calculates one stroke with average handle force as input
+func EnergyBalance(
+	F float64,
+	crew *Crew,
+	rigging *Rig,
+	v0 float64,
+	dt float64,
+	catchacceler float64,
+) []float64 {
+	var dv, vavg, vend, ratio, power float64
+
+	vb0 := v0
+
+	if catchacceler > 50 {
+		catchacceler = 50
+	}
+
+	lin := rigging.lin
+	lscull := rigging.lscull
+	lout := lscull - lin
+	tempo := crew.tempo
+	mc := crew.mc
+	mb := rigging.mb
+	recprofile := crew.recoveryprofile
+	d := crew.strokelength
+	Nrowers := rigging.Nrowers
+	dragform := rigging.dragform
+
+	if catchacceler < 2 {
+		catchacceler = 2
+	}
+
+	aantal := 1 + int(math.Round(60/(tempo*dt)))
+
+	time := LinSpace(0, 60./tempo, aantal)
+
+	vs := LinSpace(0, 0, aantal)
+	vb := LinSpace(0, 0, aantal)
+	vc := LinSpace(0, 0, aantal)
+
+	oarangle := LinSpace(0, 0, aantal)
+	xblade := LinSpace(0, 0, aantal)
+	Fhandle := LinSpace(0, 0, aantal)
+	Fblade := LinSpace(0, 0, aantal)
+	Fprop := LinSpace(0, 0, aantal)
+
+	Pbladeslip := LinSpace(0, 0, aantal)
+
+	xdotdot := LinSpace(0, 0, aantal)
+	zdotdot := LinSpace(0, 0, aantal)
+	ydotdot := LinSpace(0, 0, aantal)
+
+	xdot := LinSpace(v0, v0, aantal)
+	ydot := LinSpace(v0, v0, aantal)
+	zdot := LinSpace(v0, v0, aantal)
+
+	Pf := LinSpace(0, 0, aantal)
+	Foarlock := LinSpace(0, 0, aantal)
+	Flift := LinSpace(0, 0, aantal)
+	Fbldrag := LinSpace(0, 0, aantal)
+	attackangle := LinSpace(0, 0, aantal)
+	Clift := LinSpace(0, 0, aantal)
+	Cdrag := LinSpace(0, 0, aantal)
+
+	handlepos := 0
+
+	// initial handle and boat velocities
+	vs[0] = v0
+	vb[0] = vb0
+	vc[0] = ((float64(Nrowers)*mc+mb)*vs[0] - mb*vb[0]) / (float64(Nrowers) * mc)
+	oarangle[0] = rigging.oarangle(0)
+	xblade[0] = -lout * math.Sin(oarangle[0])
+
+	i := 1
+
+	vcstroke := 0
+	vcstroke2 := 0
+
+	vblade := xdot[aantal-1]
+
+	for vcstroke < vcstroke2 {
+		// blade entry loop
+	}
+
+	return []float64{1, 2}
+}
