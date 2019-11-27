@@ -18,7 +18,7 @@ const rho = 999.97
 
 // air density
 const RhoAir = 1.226 // kg.m3
-const Cdw = 1.1 // for all boats, big approximation
+const Cdw = 1.1      // for all boats, big approximation
 const crewarea = 2.0
 const scalepower = 0.67
 
@@ -316,7 +316,8 @@ func EnergyBalance(
 	Clift := LinSpace(0, 0, aantal)
 	Cdrag := LinSpace(0, 0, aantal)
 
-	mtotal := float64(Nrowers)*mc+mb
+	mtotal := float64(Nrowers)*mc + mb
+	mcrew := float64(Nrowers) * mc
 
 	handlepos := 0
 
@@ -337,20 +338,29 @@ func EnergyBalance(
 	for vcstroke < vcstroke2 {
 		// blade entry loop
 		vhand := catchacceler * (time[i] - time[0])
-		vcstroke := crew.vcm(vhand,handlepos)
-		phidot := vb[i-1]*math.Cos(oarangle[i-1])
-		vhand = phidot*lin*math.Cos(oarangle[i-1])
+		vcstroke := crew.vcm(vhand, handlepos)
+		phidot := vb[i-1] * math.Cos(oarangle[i-1])
+		vhand = phidot * lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
 
-		Fdrag := DragEq(mtotal,xdot[i-1],alfa*dragform,0,0)
-		zdotdot[i] = -Fdrag/mtotal
-		vw:= inwdv-vcstroke-zdot[i-1]
+		Fdrag := DragEq(mtotal, xdot[i-1], alfa*dragform, 0, 0)
+		zdotdot[i] = -Fdrag / mtotal
+		vw := inwdv - vcstroke - zdot[i-1]
 		if dowind {
-			Fwind := 0.5*crewarea*Cdw*RhoAir*(float64(Nrowers)*scalepower)*vw*math.Abs(vw)
-			} else {
-				Fwind := 0.0
-			}
+			Fwind := 0.5 * crewarea * Cdw * RhoAir * (float64(Nrowers) * scalepower) * vw * math.Abs(vw)
+		} else {
+			Fwind := 0.0
+		}
 		zdotdot[i] = zdotdot[i] + Fwind/mtotal
+		zdot[i] = zdot[i-1] + dt*zdotdot[i]
+		xdot[i] = zdot[i] - (mcrew/mtotal)*ydot[i]
+
+		Fi := crew.forceprofile(F, handlepos)
+		Fbladei := Fi * lin / lout
+		res := BladeForce(oarangle[i], rigging, vb[i-1], Fbladei)
+		phidot2 := res[0]
+		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
+		vcstroke2
 
 		i++
 	}
