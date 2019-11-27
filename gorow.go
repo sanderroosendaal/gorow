@@ -16,6 +16,12 @@ import (
 
 const rho = 999.97
 
+// air density
+const RhoAir = 1.226 // kg.m3
+const Cdw = 1.1 // for all boats, big approximation
+const crewarea = 2.0
+const scalepower = 0.67
+
 // CLmax maximum lift coefficient for blade
 const CLmax = 1.0
 
@@ -252,6 +258,8 @@ func EnergyBalance(
 	v0 float64,
 	dt float64,
 	catchacceler float64,
+	windv float64,
+	dowind bool,
 ) []float64 {
 	var dv, vavg, vend, ratio, power float64
 
@@ -308,6 +316,8 @@ func EnergyBalance(
 	Clift := LinSpace(0, 0, aantal)
 	Cdrag := LinSpace(0, 0, aantal)
 
+	mtotal := float64(Nrowers)*mc+mb
+
 	handlepos := 0
 
 	// initial handle and boat velocities
@@ -326,7 +336,42 @@ func EnergyBalance(
 
 	for vcstroke < vcstroke2 {
 		// blade entry loop
+		vhand := catchacceler * (time[i] - time[0])
+		vcstroke := crew.vcm(vhand,handlepos)
+		phidot := vb[i-1]*math.Cos(oarangle[i-1])
+		vhand = phidot*lin*math.Cos(oarangle[i-1])
+		ydot[i] = vcstroke
+
+		Fdrag := DragEq(mtotal,xdot[i-1],alfa*dragform,0,0)
+		zdotdot[i] = -Fdrag/mtotal
+		vw:= inwdv-vcstroke-zdot[i-1]
+		if dowind {
+			Fwind := 0.5*crewarea*Cdw*RhoAir*(float64(Nrowers)*scalepower)*vw*math.Abs(vw)
+			} else {
+				Fwind := 0.0
+			}
+		zdotdot[i] = zdotdot[i] + Fwind/mtotal
+
+		i++
 	}
 
-	return []float64{1, 2}
+	return []float64{
+		dv,
+		vend,
+		vavg,
+		ratio,
+		energy,
+		power,
+		efficiency,
+		vmax,
+		vmin,
+		cn_check,
+		RIM_E,
+		RIM_check,
+		RIM_catchE,
+		RIM_catchD,
+		catchacceler,
+		drag_eff,
+	}
+
 }
