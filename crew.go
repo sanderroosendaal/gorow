@@ -278,6 +278,10 @@ func (c *Crew) dxhandle(vavg, trecovery, time float64) float64 {
 	return c.recoveryprofile.dxhandle(vavg, trecovery, time)
 }
 
+func (c *Crew) forceprofile(F, x float64) float64 {
+	return c.strokeprofile.forceprofile(F,x)
+}
+
 // NewCrew inits Crew instance
 func NewCrew(mc float64, strokelength float64, tempo float64, frac float64,
 	recoveryprofile RecoveryProfile, strokeprofile ForceProfile,

@@ -31,6 +31,10 @@ const Scull = "scull"
 // N Number for bladeforce
 const N = 50
 
+// Rowing global parameters
+const alfa = 3.06 // best fit to Kleshnev data for single
+const alfaatkinson = 3.4
+
 // VecLinSpace to create a linear range as a gonum VecDense
 func VecLinSpace(start float64, stop float64, N int) *mat.VecDense {
 	return mat.NewVecDense(N, LinSpace(start, stop, N))
@@ -319,7 +323,7 @@ func EnergyBalance(
 	mtotal := float64(Nrowers)*mc + mb
 	mcrew := float64(Nrowers) * mc
 
-	handlepos := 0
+	var handlepos float64
 
 	// initial handle and boat velocities
 	vs[0] = v0
@@ -330,8 +334,8 @@ func EnergyBalance(
 
 	i := 1
 
-	vcstroke := 0
-	vcstroke2 := 0
+	var vcstroke float64
+	var vcstroke2 float64
 
 	vblade := xdot[aantal-1]
 
@@ -343,11 +347,13 @@ func EnergyBalance(
 		vhand = phidot * lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
 
-		Fdrag := DragEq(mtotal, xdot[i-1], alfa*dragform, 0, 0)
+		alfaref := alfa * dragform
+		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = -Fdrag / mtotal
-		vw := inwdv - vcstroke - zdot[i-1]
+		vw := windv - vcstroke - zdot[i-1]
+		var Fwind float64
 		if dowind {
-			Fwind := 0.5 * crewarea * Cdw * RhoAir * (float64(Nrowers) * scalepower) * vw * math.Abs(vw)
+			Fwind := 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
 		} else {
 			Fwind := 0.0
 		}
@@ -360,9 +366,150 @@ func EnergyBalance(
 		res := BladeForce(oarangle[i], rigging, vb[i-1], Fbladei)
 		phidot2 := res[0]
 		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
-		vcstroke2
+		vcstroke2 := crew.vcm(vhand2, handlepos)
+
+		vblade := xdot[i] - phidot*lout*math.Cos(oarangle[i-1])
+		vs[i] = zdot[i]
+		vc[i] = xdot[i] + ydot[i]
+		vb[i] = xdot[i]
+
+		ydotdot[i] = (ydot[i] - ydot[i-1]) / dt
+		xdotdot[i] = zdotdot[i] - ((mcrew)/(mtotal))*ydotdot[i]
+
+		handlepos += ydot[i] * dt
+		Fhandle[i] = 0
+
+		oarangle[i] = rigging.oarangle(handlepos)
 
 		i++
+	}
+
+	// stroke
+	for handlepos < d && i < len(time) {
+		Fi := crew.forceprofile(F, handlepos)
+		Fhandle[i-1] = Fi
+		Fblade[i-1] = Fi * lin / lout
+
+		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fblade[i-1])
+		phidot := res[0]
+
+		Fprop[i-1] = res[2] * float64(Nrowers)
+		Flift[i-1] = res[3] * float64(Nrowers)
+		Fbldrag[i-1] = res[4] * float64(Nrowers)
+		Clift[i-1] = res[5]
+		Cdrag[i-1] = res[6]
+		attackangle[i-1] = res[7]
+
+		vhand := phidot * lin * math.Cos(oarangle[i-1])
+
+		vcstroke := crew.vcm(vhand, handlepos)
+		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*math.Cos(oarangle[i-1]))
+		alfaref := alfa * dragform
+		Fdrag := DragEq(mcrew, xdot[i-1], alfaref, 0, 0)
+		vw := windv - vcstroke - zdot[i-1]
+		var Fwind float64
+		if dowind {
+			Fwind := 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
+		} else {
+			Fwind := 0.0
+		}
+		zdotdot[i] = zdotdot[i] + Fwind/mtotal
+
+		zdot[i] = zdot[i-1] + dt*zdotdot[i]
+
+		ydot[i] = vcstroke
+		xdot[i] = zdot[i] - ((mcrew)/(mtotal))*ydot[i]
+
+		handlepos = handlepos + vhand*dt
+		vs[i] = zdot[i]
+		vc[i] = xdot[i] - ydot[i]
+		vb[i] = xdot[i]
+
+		ydotdot[i] = (ydot[i] - ydot[i-1]) / dt
+		xdotdot[i] = zdotdot[i] - (mcrew/mtotal)*ydotdot[i]
+
+		Pf[i-1] = float64(Nrowers) * Fblade[i-1] * xdot[i] * math.Cos(oarangle[i-1])
+
+		oarangle[i] = rigging.oarangle(handlepos)
+
+		i++
+	}
+
+	i = i - 1
+
+	// recovery
+	maxtime := 60. / tempo
+	trecovery := maxtime - time[i]
+	ratio = time[i] / maxtime
+	aantalstroke := i
+
+	vavgrec := d / trecovery
+	var vcrecovery [aantal]float64
+
+	for k := i + 1; k < aantal; k++ {
+		vhand := crew.vhandle(vavgrec, trecovery, time[k]-time[i])
+		vcrecovery[k] = crew.vcm(vhand, handlepos)
+
+		alfaref := alfa * dragform
+		Fdrag := DragEq(mtotal, xdot[k-1], alfaref, 0, 0)
+		zdotdot[k] = -Fdrag / mtotal
+
+		vw := windv - vcstroke - zdot[k-1]
+		var Fwind float64
+		if dowind {
+			Fwind := 0.5 * crewarea * Cdw * RhoAir * (math.Pow(float64(Nrowers), scalepower)) * vw * math.Abs(vw)
+		} else {
+			Fwind := 0
+		}
+
+		zdotdot[k] = zdotdot[k] + Fwind/mtotal
+
+		zdot[k] = zdot[k-1] + dt*zdotdot[k]
+		ydot[k] = vcrecovery[k]
+		xdot[k] = zdot[k] - ydot[k]*mcrew/mtotal
+
+		vs[k] = zdot[k]
+		vc[k] = xdot[k] + ydot[k]
+		vb[k] = xdot[k]
+
+		ydotdot[k] = (ydot[k] - ydot[k-1]) / dt
+		xdotdot[k] = zdotdot[k] - ydotdot[k]*mcrew/mtotal
+
+		handlepos = d + d*crew.dxhandle(vavgrec, trecovery, time[k]-time[i])
+		oarangle[k] = rigging.oarangle(handlepos)
+	}
+
+	var Pq [aantal]float64
+	var Pqrower [aantal]float64
+
+	// blade positions
+	for i := 0; i < aantal; i++ {
+		xdot[i] = vb[i]
+		zdot[i] = vs[i]
+		ydot[i] = vc[i] - vb[i]
+	}
+
+	xdotdot[1] = (xdot[1] - xdot[0]) / dt
+	ydotdot[1] = (ydot[1] - ydot[0]) / dt
+
+	var Ekinb [aantal]float64
+	var Ekinc [aantal]float64
+	var Pw [aantal]float64
+	var Pmb [aantal]float64
+	var alfaref = alfa * dragform
+
+	for i := 0; i < aantal; i++ {
+		Pq[i] = mcrew * (xdotdot[i] + ydotdot[i]) * ydot[i]
+		Pw[i] = DragEq(mtotal, xdot[i], alfaref, 0, 0)
+		Pmb[i] = mb * xdot[i] * xdotdot[i]
+		Pmc[i] = mcrew * (xdot[i] + ydot[i]) * (xdotdot[i] + ydotdot[i])
+		Phandle[i] = float64(Nrowers) * Fhandle[i] * xdot[i] * math.Cos(oarangle[i])
+		Pleg[i] = float64(Nrowers) * mc * (xdotdot[i] + ydotdot[i]) * ydot[i]
+		if i > 1 {
+			Ekinb[i] = Ekinb[i-1] + Pmb[i]*dt
+			Ekinc[i] = Ekinc[i-1] + Pmc[i]*dt
+		}
+		Pqrower[i] = math.Abs(Pq[i])
 	}
 
 	return []float64{
