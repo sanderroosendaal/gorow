@@ -368,13 +368,13 @@ func EnergyBalance(
 
 	i := 1
 
-	var vcstroke float64
-	var vcstroke2 float64
+	var vcstroke float64 = 0
+	var vcstroke2 float64 = 1
 
-	for vcstroke < vcstroke2 {
+	for vcstroke < vcstroke2 && i < aantal {
 		// blade entry loop
 		vhand := catchacceler * (time[i] - time[0])
-		vcstroke := crew.vcm(vhand, handlepos)
+		vcstroke = crew.vcm(vhand, handlepos)
 		phidot := vb[i-1] * math.Cos(oarangle[i-1])
 		vhand = phidot * lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
@@ -396,6 +396,7 @@ func EnergyBalance(
 		res := BladeForce(oarangle[i], rigging, vb[i-1], Fbladei)
 		phidot2 := res[0]
 		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
+
 		vcstroke2 = crew.vcm(vhand2, handlepos)
 
 		vs[i] = zdot[i]

@@ -9,6 +9,13 @@ const tolerance = 0.000001
 const relativetolerance = 0.05
 
 func GetTolerance(got float64, want float64) bool {
+	if want == 0.0 {
+		if got == want {
+			return true
+		} else {
+			return false
+		}
+	}
 	var diff = math.Abs((got - want) / (want))
 	return diff < relativetolerance
 }
@@ -263,4 +270,43 @@ func TestBladeForce(t *testing.T) {
 				i, want[i], got[i])
 		}
 	}
+}
+
+func TestEnergyBalance(t *testing.T) {
+
+	want := []float64{
+		-1.1667981987470988,
+		3.213301801252901,
+		3.8719165568948823,
+		0.5373134328358209,
+		37.690691117495874,
+		18.84534555874794,
+		-0.5102722710695103,
+		4.926886195586347,
+		3.0492441927029486,
+		3.9147128857620284,
+		0.0, // 1.6782516229515452,
+		0.0, // 1.8776420028833982,
+		0.0, // 10.646435300667848,
+		0.0, //0.9850746268656716,
+		13.167429242768097,
+		0.9264780367117965,
+	}
+
+	c := NewCrew(80., 1.4, 30.0, 0.5, SinusRecovery{}, Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14., 2.885, 1.6, 0.88, Scull, -.93, 822.e-4, 0.46, 1, 1.0)
+	got := EnergyBalance(100, c, rg, 4.3801, 0.03, 5.0, 0.0, false)
+
+	if len(got) != len(want) {
+		t.Errorf("Function EnergyBalance did not return the expected slice length. Got %d, wanted %d",
+			len(got), len(want))
+	}
+
+	for i := range want {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function EnergyBalance, element %d, expected %f, got %f",
+				i, want[i], got[i])
+		}
+	}
+
 }
