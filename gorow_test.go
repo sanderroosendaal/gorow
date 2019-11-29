@@ -13,6 +13,43 @@ func GetTolerance(got float64, want float64) bool {
 	return diff < relativetolerance
 }
 
+func TestSlices(t *testing.T) {
+	s1 := []float64{1, 2}
+	s2 := []float64{3, 4}
+
+	got := Slicesadd(s1, s2)
+	want := []float64{4, 6}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("Slices addition failed. Got %f, wanted %f\n", got[i], want[i])
+		}
+	}
+
+	got = Slicesadd(s1, s2, s2)
+	want = []float64{7, 10}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("Slices addition failed. Got %f, wanted %f\n", got[i], want[i])
+		}
+	}
+
+	v := []float64{2, 1, 3, 4, 5, 123, 1}
+	smallest, biggest := Sliceminmax(v)
+	wantbig := 123.0
+	wantsmall := 1.0
+
+	if smallest != wantsmall {
+		t.Error("Slices min failed. Got %f, wanted %f\n", smallest, wantsmall)
+	}
+
+	if biggest != wantbig {
+		t.Error("Slices min failed. Got %f, wanted %f\n", biggest, wantbig)
+	}
+
+}
+
 func TestDragEq(t *testing.T) {
 	var got = DragEq(100, 4.5, 3.5, 0, 0)
 	var want = 74.445191

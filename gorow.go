@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat"
 )
 
 // Global constants
@@ -34,6 +35,39 @@ const N = 50
 // Rowing global parameters
 const alfa = 3.06 // best fit to Kleshnev data for single
 const alfaatkinson = 3.4
+
+// slice helper functions
+func Sliceminmax(vs []float64) (min float64, max float64) {
+	biggest, smallest := vs[0], vs[0]
+
+	for _, v := range vs {
+		if v > biggest {
+			biggest = v
+		}
+		if v < smallest {
+			smallest = v
+		}
+	}
+	return smallest, biggest
+}
+
+func Slicesadd(vs ...[]float64) []float64 {
+	out := make([]float64, len(vs[0]))
+	for i := 0; i < len(vs[0]); i++ {
+		for _, v := range vs {
+			out[i] += v[i]
+		}
+	}
+	return out
+}
+
+func Slicenegative(vs []float64) []float64 {
+	out := make([]float64, len(vs))
+	for i, v := range vs {
+		out[i] = -v
+	}
+	return out
+}
 
 // VecLinSpace to create a linear range as a gonum VecDense
 func VecLinSpace(start float64, stop float64, N int) *mat.VecDense {
@@ -279,7 +313,7 @@ func EnergyBalance(
 	tempo := crew.tempo
 	mc := crew.mc
 	mb := rigging.mb
-	recprofile := crew.recoveryprofile
+
 	d := crew.strokelength
 	Nrowers := rigging.Nrowers
 	dragform := rigging.dragform
@@ -313,7 +347,7 @@ func EnergyBalance(
 	zdot := LinSpace(v0, v0, aantal)
 
 	Pf := LinSpace(0, 0, aantal)
-	Foarlock := LinSpace(0, 0, aantal)
+
 	Flift := LinSpace(0, 0, aantal)
 	Fbldrag := LinSpace(0, 0, aantal)
 	attackangle := LinSpace(0, 0, aantal)
@@ -337,8 +371,6 @@ func EnergyBalance(
 	var vcstroke float64
 	var vcstroke2 float64
 
-	vblade := xdot[aantal-1]
-
 	for vcstroke < vcstroke2 {
 		// blade entry loop
 		vhand := catchacceler * (time[i] - time[0])
@@ -354,8 +386,6 @@ func EnergyBalance(
 		var Fwind float64
 		if dowind {
 			Fwind := 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
-		} else {
-			Fwind := 0.0
 		}
 		zdotdot[i] = zdotdot[i] + Fwind/mtotal
 		zdot[i] = zdot[i-1] + dt*zdotdot[i]
@@ -366,9 +396,8 @@ func EnergyBalance(
 		res := BladeForce(oarangle[i], rigging, vb[i-1], Fbladei)
 		phidot2 := res[0]
 		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
-		vcstroke2 := crew.vcm(vhand2, handlepos)
+		vcstroke2 = crew.vcm(vhand2, handlepos)
 
-		vblade := xdot[i] - phidot*lout*math.Cos(oarangle[i-1])
 		vs[i] = zdot[i]
 		vc[i] = xdot[i] + ydot[i]
 		vb[i] = xdot[i]
@@ -406,12 +435,11 @@ func EnergyBalance(
 		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*math.Cos(oarangle[i-1]))
 		alfaref := alfa * dragform
 		Fdrag := DragEq(mcrew, xdot[i-1], alfaref, 0, 0)
+		zdotdot[i] = (Fprop[i-1] - Fdrag) / mtotal
 		vw := windv - vcstroke - zdot[i-1]
 		var Fwind float64
 		if dowind {
 			Fwind := 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
-		} else {
-			Fwind := 0.0
 		}
 		zdotdot[i] = zdotdot[i] + Fwind/mtotal
 
@@ -444,7 +472,7 @@ func EnergyBalance(
 	aantalstroke := i
 
 	vavgrec := d / trecovery
-	var vcrecovery [aantal]float64
+	vcrecovery := make([]float64, aantal)
 
 	for k := i + 1; k < aantal; k++ {
 		vhand := crew.vhandle(vavgrec, trecovery, time[k]-time[i])
@@ -479,8 +507,28 @@ func EnergyBalance(
 		oarangle[k] = rigging.oarangle(handlepos)
 	}
 
-	var Pq [aantal]float64
-	var Pqrower [aantal]float64
+	Pq := make([]float64, aantal)
+	Pqrower := make([]float64, aantal)
+	Pdiss := make([]float64, aantal)
+	Ekinb := make([]float64, aantal)
+	Ekinc := make([]float64, aantal)
+	Ef := make([]float64, aantal)
+	Eq := make([]float64, aantal)
+	Eblade := make([]float64, aantal)
+	Eqrower := make([]float64, aantal)
+	Ediss := make([]float64, aantal)
+	Eleg := make([]float64, aantal)
+	Ehandle := make([]float64, aantal)
+	Ew := make([]float64, aantal)
+	var Ewmin float64
+	var Pwmin float64
+	Pw := make([]float64, aantal)
+	Pmb := make([]float64, aantal)
+	Pmc := make([]float64, aantal)
+	Phandle := make([]float64, aantal)
+	Pleg := make([]float64, aantal)
+
+	alfaref := alfa * dragform
 
 	// blade positions
 	for i := 0; i < aantal; i++ {
@@ -492,11 +540,8 @@ func EnergyBalance(
 	xdotdot[1] = (xdot[1] - xdot[0]) / dt
 	ydotdot[1] = (ydot[1] - ydot[0]) / dt
 
-	var Ekinb [aantal]float64
-	var Ekinc [aantal]float64
-	var Pw [aantal]float64
-	var Pmb [aantal]float64
-	var alfaref = alfa * dragform
+	xdotmean := stat.Mean(xdot, nil)
+	Pwmin = DragEq(mtotal, xdotmean, alfaref, 0, 0) * xdotmean
 
 	for i := 0; i < aantal; i++ {
 		Pq[i] = mcrew * (xdotdot[i] + ydotdot[i]) * ydot[i]
@@ -505,11 +550,71 @@ func EnergyBalance(
 		Pmc[i] = mcrew * (xdot[i] + ydot[i]) * (xdotdot[i] + ydotdot[i])
 		Phandle[i] = float64(Nrowers) * Fhandle[i] * xdot[i] * math.Cos(oarangle[i])
 		Pleg[i] = float64(Nrowers) * mc * (xdotdot[i] + ydotdot[i]) * ydot[i]
+		Pqrower[i] = math.Abs(Pq[i])
+		Pdiss[i] = Pqrower[i] - Pq[i]
+
 		if i > 1 {
 			Ekinb[i] = Ekinb[i-1] + Pmb[i]*dt
 			Ekinc[i] = Ekinc[i-1] + Pmc[i]*dt
+			Ef[i] = Ef[i-1] + Pf[i]*dt
+			Eq[i] = Eq[i-1] + Pq[i]*dt
+			Eblade[i] = Eblade[i-1] + Pbladeslip[i]*dt
+			Eqrower[i] = Eqrower[i-1] + Pqrower[i]*dt
+			Ediss[i] = Ediss[i-1] + Pdiss[i]*dt
+			Ew[i] = Eq[i-1] + Pw[i]*dt
+			Eleg[i] = Eleg[i-1] + Pleg[i]*dt
+			Ehandle[i] = Ehandle[i-1] + Phandle[i]*dt
 		}
-		Pqrower[i] = math.Abs(Pq[i])
+
+	}
+
+	Ewmin = Pwmin * 60. / tempo
+
+	Ekin0 := 0.5 * mtotal * math.Pow(zdot[0], 2)
+	Ekinend := 0.5 * mtotal * math.Pow(zdot[aantal-1], 2)
+	Eloss := Ekin0 - Ekinend
+
+	// calculate vavg, vmin, vmax, energy, efficiency, power
+	dv = zdot[aantal-1] - zdot[0]
+	vavg = stat.Mean(xdot, nil)
+	vend = zdot[aantal-1]
+	_, energy := Sliceminmax(Slicesadd(Ew, Ediss, Eblade))
+	energy -= Eloss
+	_, efficiency := Sliceminmax(Ew)
+	efficiency -= Eloss
+	efficiency = efficiency / energy
+	energy = energy / float64(Nrowers)
+	power = energy * tempo / 60.
+	vmin, vmax := Sliceminmax(xdot)
+
+	// calculate check
+	/*
+			decel = -(abs(xdotdot[index_offset:])-xdotdot[index_offset:])/2.
+		    indices = decel.nonzero()
+		    decelmean = mean(decel[indices]) */
+
+	cn_check := 0.0 // np.std(decel[indices])**2
+
+	// RIM parameters
+	RIM_check := vmax - vmin
+	RIM_E := 0.0 // max(cumsum(xdot-vmin)*dt)
+	_, maxEw := Sliceminmax(Ew)
+	drag_eff := Ewmin / maxEw
+	/*
+	   try:
+	       t4 = time[index_offset+min(where(decel==0)[0])]
+	       t3 = time[index_offset+max(where(decel==0)[0])]
+	   except ValueError:
+	       t4 = 1.0
+	       t3 = t4
+	*/
+	amin, _ := Sliceminmax(xdotdot[2:])
+	RIM_catchE := 0.0 // -(amin/t4)
+	RIM_catchD := 0.0 // t4+max(time)-t3
+
+	catchacceler = ydotdot[aantal-1] - xdotdot[aantal-1]
+	if catchacceler > 5.0 {
+		catchacceler = 5.0
 	}
 
 	return []float64{
