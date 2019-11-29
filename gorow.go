@@ -17,9 +17,10 @@ import (
 
 const rho = 999.97
 
-// air density
+// RhoAir air density
 const RhoAir = 1.226 // kg.m3
-const Cdw = 1.1      // for all boats, big approximation
+// Cdw drag constant
+const Cdw = 1.1 // for all boats, big approximation
 const crewarea = 2.0
 const scalepower = 0.67
 
@@ -373,10 +374,9 @@ func EnergyBalance(
 
 	for vcstroke < vcstroke2 && i < aantal {
 		// blade entry loop
-		vhand := catchacceler * (time[i] - time[0])
-		vcstroke = crew.vcm(vhand, handlepos)
-		phidot := vb[i-1] * math.Cos(oarangle[i-1])
-		vhand = phidot * lin * math.Cos(oarangle[i-1])
+		vcstroke = crew.vcm(catchacceler*(time[i]-time[0]), handlepos)
+		// phidot := vb[i-1] * math.Cos(oarangle[i-1])
+		// vhand := phidot * lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
 
 		alfaref := alfa * dragform
