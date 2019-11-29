@@ -383,9 +383,9 @@ func EnergyBalance(
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = -Fdrag / mtotal
 		vw := windv - vcstroke - zdot[i-1]
-		var Fwind float64
+		Fwind := 0.0
 		if dowind {
-			Fwind := 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
+			Fwind = 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
 		}
 		zdotdot[i] = zdotdot[i] + Fwind/mtotal
 		zdot[i] = zdot[i-1] + dt*zdotdot[i]
@@ -437,9 +437,9 @@ func EnergyBalance(
 		Fdrag := DragEq(mcrew, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = (Fprop[i-1] - Fdrag) / mtotal
 		vw := windv - vcstroke - zdot[i-1]
-		var Fwind float64
+		Fwind := 0.0
 		if dowind {
-			Fwind := 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
+			Fwind = 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
 		}
 		zdotdot[i] = zdotdot[i] + Fwind/mtotal
 
@@ -469,7 +469,6 @@ func EnergyBalance(
 	maxtime := 60. / tempo
 	trecovery := maxtime - time[i]
 	ratio = time[i] / maxtime
-	aantalstroke := i
 
 	vavgrec := d / trecovery
 	vcrecovery := make([]float64, aantal)
@@ -483,11 +482,9 @@ func EnergyBalance(
 		zdotdot[k] = -Fdrag / mtotal
 
 		vw := windv - vcstroke - zdot[k-1]
-		var Fwind float64
+		Fwind := 0.0
 		if dowind {
-			Fwind := 0.5 * crewarea * Cdw * RhoAir * (math.Pow(float64(Nrowers), scalepower)) * vw * math.Abs(vw)
-		} else {
-			Fwind := 0
+			Fwind = 0.5 * crewarea * Cdw * RhoAir * (math.Pow(float64(Nrowers), scalepower)) * vw * math.Abs(vw)
 		}
 
 		zdotdot[k] = zdotdot[k] + Fwind/mtotal
@@ -608,7 +605,7 @@ func EnergyBalance(
 	       t4 = 1.0
 	       t3 = t4
 	*/
-	amin, _ := Sliceminmax(xdotdot[2:])
+	// amin, _ := Sliceminmax(xdotdot[2:])
 	RIM_catchE := 0.0 // -(amin/t4)
 	RIM_catchD := 0.0 // t4+max(time)-t3
 

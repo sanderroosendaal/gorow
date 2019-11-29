@@ -41,11 +41,11 @@ func TestSlices(t *testing.T) {
 	wantsmall := 1.0
 
 	if smallest != wantsmall {
-		t.Error("Slices min failed. Got %f, wanted %f\n", smallest, wantsmall)
+		t.Errorf("Slices min failed. Got %f, wanted %f\n", smallest, wantsmall)
 	}
 
 	if biggest != wantbig {
-		t.Error("Slices min failed. Got %f, wanted %f\n", biggest, wantbig)
+		t.Errorf("Slices min failed. Got %f, wanted %f\n", biggest, wantbig)
 	}
 
 }
