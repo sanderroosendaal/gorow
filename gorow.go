@@ -37,7 +37,7 @@ const alfa = 3.06 // best fit to Kleshnev data for single
 const alfaatkinson = 3.4
 
 // slice helper functions
-func Sliceminmax(vs []float64) (min float64, max float64) {
+func sliceminmax(vs []float64) (min float64, max float64) {
 	biggest, smallest := vs[0], vs[0]
 
 	for _, v := range vs {
@@ -51,7 +51,7 @@ func Sliceminmax(vs []float64) (min float64, max float64) {
 	return smallest, biggest
 }
 
-func Slicesadd(vs ...[]float64) []float64 {
+func slicesadd(vs ...[]float64) []float64 {
 	out := make([]float64, len(vs[0]))
 	for i := 0; i < len(vs[0]); i++ {
 		for _, v := range vs {
@@ -61,7 +61,7 @@ func Slicesadd(vs ...[]float64) []float64 {
 	return out
 }
 
-func Slicenegative(vs []float64) []float64 {
+func slicenegative(vs []float64) []float64 {
 	out := make([]float64, len(vs))
 	for i, v := range vs {
 		out[i] = -v
@@ -368,7 +368,7 @@ func EnergyBalance(
 
 	i := 1
 
-	var vcstroke float64 = 0
+	var vcstroke float64
 	var vcstroke2 float64 = 1
 
 	for vcstroke < vcstroke2 && i < aantal {
@@ -576,14 +576,14 @@ func EnergyBalance(
 	dv = zdot[aantal-1] - zdot[0]
 	vavg = stat.Mean(xdot, nil)
 	vend = zdot[aantal-1]
-	_, energy := Sliceminmax(Slicesadd(Ew, Ediss, Eblade))
+	_, energy := sliceminmax(slicesadd(Ew, Ediss, Eblade))
 	energy -= Eloss
-	_, efficiency := Sliceminmax(Ew)
+	_, efficiency := sliceminmax(Ew)
 	efficiency -= Eloss
 	efficiency = efficiency / energy
 	energy = energy / float64(Nrowers)
 	power = energy * tempo / 60.
-	vmin, vmax := Sliceminmax(xdot)
+	vmin, vmax := sliceminmax(xdot)
 
 	// calculate check
 	/*
@@ -596,8 +596,8 @@ func EnergyBalance(
 	// RIM parameters
 	RIMCheck := vmax - vmin
 	RIME := 0.0 // max(cumsum(xdot-vmin)*dt)
-	_, maxEw := Sliceminmax(Ew)
-	drag_eff := Ewmin / maxEw
+	_, maxEw := sliceminmax(Ew)
+	dragEff := Ewmin / maxEw
 	/*
 	   try:
 	       t4 = time[index_offset+min(where(decel==0)[0])]
@@ -611,27 +611,27 @@ func EnergyBalance(
 	RIMCatchD := 0.0 // t4+max(time)-t3
 
 	catchacceler = ydotdot[aantal-1] - xdotdot[aantal-1]
-	if catchacceler > 5.0 {
+	if catchacceler < 5.0 {
 		catchacceler = 5.0
 	}
 
 	return []float64{
-		dv,
-		vend,
-		vavg,
-		ratio,
-		energy,
-		power,
-		efficiency,
-		vmax,
-		vmin,
-		CNCheck,
-		RIME,
-		RIMCheck,
-		RIMCatchE,
-		RIMCatchD,
-		catchacceler,
-		drag_eff,
+		dv,           // 0
+		vend,         // 1
+		vavg,         // 2
+		ratio,        // 3
+		energy,       // 4
+		power,        // 5
+		efficiency,   // 6
+		vmax,         // 7
+		vmin,         // 8
+		CNCheck,      // 9
+		RIME,         // 10
+		RIMCheck,     // 11
+		RIMCatchE,    // 12
+		RIMCatchD,    // 13
+		catchacceler, // 14
+		dragEff,      // 15
 	}
 
 }

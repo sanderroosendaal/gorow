@@ -24,7 +24,7 @@ func TestSlices(t *testing.T) {
 	s1 := []float64{1, 2}
 	s2 := []float64{3, 4}
 
-	got := Slicesadd(s1, s2)
+	got := slicesadd(s1, s2)
 	want := []float64{4, 6}
 
 	for i := range want {
@@ -33,7 +33,7 @@ func TestSlices(t *testing.T) {
 		}
 	}
 
-	got = Slicesadd(s1, s2, s2)
+	got = slicesadd(s1, s2, s2)
 	want = []float64{7, 10}
 
 	for i := range want {
@@ -43,7 +43,7 @@ func TestSlices(t *testing.T) {
 	}
 
 	v := []float64{2, 1, 3, 4, 5, 123, 1}
-	smallest, biggest := Sliceminmax(v)
+	smallest, biggest := sliceminmax(v)
 	wantbig := 123.0
 	wantsmall := 1.0
 
