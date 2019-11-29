@@ -590,11 +590,11 @@ func EnergyBalance(
 		    indices = decel.nonzero()
 		    decelmean = mean(decel[indices]) */
 
-	cn_check := 0.0 // np.std(decel[indices])**2
+	CNCheck := 0.0 // np.std(decel[indices])**2
 
 	// RIM parameters
-	RIM_check := vmax - vmin
-	RIM_E := 0.0 // max(cumsum(xdot-vmin)*dt)
+	RIMCheck := vmax - vmin
+	RIME := 0.0 // max(cumsum(xdot-vmin)*dt)
 	_, maxEw := Sliceminmax(Ew)
 	drag_eff := Ewmin / maxEw
 	/*
@@ -606,8 +606,8 @@ func EnergyBalance(
 	       t3 = t4
 	*/
 	// amin, _ := Sliceminmax(xdotdot[2:])
-	RIM_catchE := 0.0 // -(amin/t4)
-	RIM_catchD := 0.0 // t4+max(time)-t3
+	RIMCatchE := 0.0 // -(amin/t4)
+	RIMCatchD := 0.0 // t4+max(time)-t3
 
 	catchacceler = ydotdot[aantal-1] - xdotdot[aantal-1]
 	if catchacceler > 5.0 {
@@ -624,11 +624,11 @@ func EnergyBalance(
 		efficiency,
 		vmax,
 		vmin,
-		cn_check,
-		RIM_E,
-		RIM_check,
-		RIM_catchE,
-		RIM_catchD,
+		CNCheck,
+		RIME,
+		RIMCheck,
+		RIMCatchE,
+		RIMCatchD,
 		catchacceler,
 		drag_eff,
 	}
