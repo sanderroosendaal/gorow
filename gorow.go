@@ -86,16 +86,6 @@ func LinSpace(start float64, stop float64, N int) []float64 {
 	return rnge
 }
 
-// Constvec creates a VecDense with a single value
-func Constvec(value float64, N int) *mat.VecDense {
-	rnge := make([]float64, N)
-	for i := range rnge {
-		rnge[i] = value
-	}
-	var r = mat.NewVecDense(N, rnge)
-	return r
-}
-
 // DragEq calculates drag
 func DragEq(displacement float64, velo float64,
 	alfaref float64, doprint int, constantdrag int) float64 {
