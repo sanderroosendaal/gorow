@@ -6,7 +6,7 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.05
+const relativetolerance = 0.03
 
 func GetTolerance(got float64, want float64) bool {
 	if want == 0.0 {
@@ -107,6 +107,24 @@ func TestCrew(t *testing.T) {
 
 	want = 0.8155612244897958
 	got = c.vcm(1, 0.3)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 0.8346938775510204
+	got = c.vcm(1, 0.2)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 0.5400510204081632
+	got = c.vcm(1, 0.9)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 0.2700255102040816
+	got = c.vcm(0.5, 0.9)
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
 	}
@@ -241,6 +259,33 @@ func TestDFootboard(t *testing.T) {
 	}
 }
 
+func TestLinSpace(t *testing.T) {
+	want := []float64{1., 1.02040816, 1.04081633, 1.06122449, 1.08163265,
+		1.10204082, 1.12244898, 1.14285714, 1.16326531, 1.18367347,
+		1.20408163, 1.2244898, 1.24489796, 1.26530612, 1.28571429,
+		1.30612245, 1.32653061, 1.34693878, 1.36734694, 1.3877551,
+		1.40816327, 1.42857143, 1.44897959, 1.46938776, 1.48979592,
+		1.51020408, 1.53061224, 1.55102041, 1.57142857, 1.59183673,
+		1.6122449, 1.63265306, 1.65306122, 1.67346939, 1.69387755,
+		1.71428571, 1.73469388, 1.75510204, 1.7755102, 1.79591837,
+		1.81632653, 1.83673469, 1.85714286, 1.87755102, 1.89795918,
+		1.91836735, 1.93877551, 1.95918367, 1.97959184, 2.}
+
+	got := LinSpace(1, 2, 50)
+
+	if len(got) != len(want) {
+		t.Errorf("Function LinSpace did not return the expected slice. Got %d, wanted %d",
+			len(got), len(want))
+	}
+
+	for i := range got {
+		if math.Abs(got[i]-want[i]) > tolerance {
+			t.Errorf("Function Linspace %d, got %f, wanted %f", i, got[i], want[i])
+		}
+	}
+
+}
+
 func TestBladeForce(t *testing.T) {
 	var want = []float64{
 		1.8192760229325606,
@@ -270,6 +315,25 @@ func TestBladeForce(t *testing.T) {
 				i, want[i], got[i])
 		}
 	}
+
+	want = []float64{2.0803788704765536,
+		99.99842385483569,
+		76.4830132261339,
+		-99.73887777592651,
+		7.200071767014857,
+		-0.14362994318676583,
+		0.010368533533736905,
+		-0.07206421091268539}
+
+	got = BladeForce(-0.7, rg, 4.5, 100)
+
+	for i := 0; i < len(want); i++ {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function BladeForce 2, element %d, expected %f, got %f",
+				i, want[i], got[i])
+		}
+	}
+
 }
 
 func TestEnergyBalance(t *testing.T) {
@@ -293,9 +357,12 @@ func TestEnergyBalance(t *testing.T) {
 		0.8637680813346094,
 	}
 
-	c := NewCrew(80., 1.4, 30.0, 0.5, SinusRecovery{}, Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
-	rg := NewRig(0.9, 14., 2.885, 1.6, 0.88, Scull, -.93, 822.e-4, 0.46, 1, 1.0)
-	got := EnergyBalance(100, c, rg, 3.28, 0.03, 5.0, 0.0, false)
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, false)
 
 	if len(got) != len(want) {
 		t.Errorf("Function EnergyBalance did not return the expected slice length. Got %d, wanted %d",

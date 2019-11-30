@@ -78,7 +78,7 @@ func VecLinSpace(start float64, stop float64, N int) *mat.VecDense {
 // LinSpace to create a linear range
 func LinSpace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
-	var step = (stop - start) / float64(N)
+	var step = (stop - start) / float64(N-1)
 	for x := range rnge {
 		rnge[x] = start + step*float64(x)
 	}
@@ -233,11 +233,13 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	var a float64
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
-	var phidot = LinSpace(phidot0, 2*math.Abs(phidot0), N)
-	var phidotv = mat.NewVecDense(N, phidot)
-	var vblade = Constvec(lout, N)
+	var phidot = LinSpace(phidot0, 2*phidot0, N)
 
-	vblade.MulElemVec(vblade, phidotv)
+	var vblade = make([]float64, N)
+
+	for i, v := range phidot {
+		vblade[i] = v * lout
+	}
 
 	var u1v = make([]float64, N)
 	var up = vb * math.Sin(oarangle)
@@ -250,7 +252,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	for i := 0; i < N; i++ {
 		// go func(i int) {
 		// defer wg.Done()
-		var u1 = vblade.AtVec(i) - vb*math.Cos(oarangle)
+		var u1 = vblade[i] - vb*math.Cos(oarangle)
 		u1v[i] = u1
 		var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
 		a = math.Atan(u1 / up)                               // angle of attack
@@ -378,10 +380,12 @@ func EnergyBalance(
 		// phidot := vb[i-1] * math.Cos(oarangle[i-1])
 		// vhand := phidot * lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
+		fmt.Println(i, vcstroke, vcstroke2, catchacceler)
 
 		alfaref := alfa * dragform
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = -Fdrag / mtotal
+		fmt.Println(i, zdotdot[i], "zdotdot")
 		vw := windv - vcstroke - zdot[i-1]
 		Fwind := 0.0
 		if dowind {
@@ -393,9 +397,13 @@ func EnergyBalance(
 
 		Fi := crew.forceprofile(F, handlepos)
 		Fbladei := Fi * lin / lout
+		// fmt.Println(i, Fbladei, Fi)
 		res := BladeForce(oarangle[i], rigging, vb[i-1], Fbladei)
+
 		phidot2 := res[0]
+		fmt.Println(phidot2, oarangle[i], vb[i-1], Fbladei)
 		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
+		// fmt.Println(i, phidot2, lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
 
 		vcstroke2 = crew.vcm(vhand2, handlepos)
 

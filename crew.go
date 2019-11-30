@@ -86,7 +86,7 @@ func (s Trapezium) forceprofile(favg, x float64) float64 {
 	} else if x > s.x2 {
 		f = favg * s.h2 * (1. - x) / (1. - s.x2)
 	} else {
-		f = (s.h1 + (s.h2-s.h1)*(x-s.x1)/(s.x2-s.x1)) * favg
+		f = favg * (s.h1 + (s.h2-s.h1)*(x-s.x1)/(s.x2-s.x1))
 	}
 
 	f = f / ratio
@@ -279,7 +279,7 @@ func (c *Crew) dxhandle(vavg, trecovery, time float64) float64 {
 }
 
 func (c *Crew) forceprofile(F, x float64) float64 {
-	return c.strokeprofile.forceprofile(F,x)
+	return c.strokeprofile.forceprofile(F, x)
 }
 
 // NewCrew inits Crew instance
