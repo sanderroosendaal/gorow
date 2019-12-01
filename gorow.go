@@ -584,6 +584,7 @@ func EnergyBalance(
 	vavg = stat.Mean(xdot, nil)
 	vend = zdot[aantal-1]
 	_, energy := sliceminmax(slicesadd(Ew, Ediss, Eblade))
+
 	energy -= Eloss
 	_, efficiency := sliceminmax(Ew)
 	efficiency -= Eloss
