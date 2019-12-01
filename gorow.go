@@ -223,7 +223,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	var a float64
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
-	var phidot = LinSpace(phidot0, 2*phidot0, N)
+	var phidot = LinSpace(phidot0, 2*math.Abs(phidot0), N)
 
 	var vblade = make([]float64, N)
 
@@ -254,6 +254,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 		FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
 		// Fprop = FRv[i] * math.Cos(oarangle)
 		av[i] = a
+
 		// } (i)
 	}
 
@@ -277,7 +278,14 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	Fprop = FR * math.Cos(oarangle)
 
 	return []float64{
-		phidot1, FR, Fprop, FL, FD, CL, CD, a,
+		phidot1, // 0
+		FR,      // 1
+		Fprop,   // 2
+		FL,      // 3
+		FD,      // 4
+		CL,      // 5
+		CD,      // 6
+		a,       // 7
 	}
 }
 
@@ -292,6 +300,7 @@ func EnergyBalance(
 	windv float64,
 	dowind bool,
 ) []float64 {
+
 	var dv, vavg, vend, ratio, power float64
 
 	vb0 := v0
@@ -366,16 +375,16 @@ func EnergyBalance(
 
 	for vcstroke < vcstroke2 && i < aantal {
 		// blade entry loop
-		vcstroke = crew.vcm(catchacceler*(time[i]-time[0]), handlepos)
+		vhand := catchacceler * (time[i] - time[0])
+		vcstroke = crew.vcm(vhand, handlepos)
 		// phidot := vb[i-1] * math.Cos(oarangle[i-1])
 		// vhand := phidot * lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
-		fmt.Println(i, vcstroke, vcstroke2, catchacceler)
 
 		alfaref := alfa * dragform
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = -Fdrag / mtotal
-		fmt.Println(i, zdotdot[i], "zdotdot")
+
 		vw := windv - vcstroke - zdot[i-1]
 		Fwind := 0.0
 		if dowind {
@@ -388,10 +397,9 @@ func EnergyBalance(
 		Fi := crew.forceprofile(F, handlepos)
 		Fbladei := Fi * lin / lout
 		// fmt.Println(i, Fbladei, Fi)
-		res := BladeForce(oarangle[i], rigging, vb[i-1], Fbladei)
+		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fbladei)
 
 		phidot2 := res[0]
-		fmt.Println(phidot2, oarangle[i], vb[i-1], Fbladei)
 		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
 		// fmt.Println(i, phidot2, lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
 
@@ -432,8 +440,9 @@ func EnergyBalance(
 
 		vcstroke := crew.vcm(vhand, handlepos)
 		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*math.Cos(oarangle[i-1]))
+
 		alfaref := alfa * dragform
-		Fdrag := DragEq(mcrew, xdot[i-1], alfaref, 0, 0)
+		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = (Fprop[i-1] - Fdrag) / mtotal
 		vw := windv - vcstroke - zdot[i-1]
 		Fwind := 0.0
@@ -449,7 +458,7 @@ func EnergyBalance(
 
 		handlepos = handlepos + vhand*dt
 		vs[i] = zdot[i]
-		vc[i] = xdot[i] - ydot[i]
+		vc[i] = xdot[i] + ydot[i]
 		vb[i] = xdot[i]
 
 		ydotdot[i] = (ydot[i] - ydot[i-1]) / dt
@@ -506,16 +515,16 @@ func EnergyBalance(
 	Pq := make([]float64, aantal)
 	Pqrower := make([]float64, aantal)
 	Pdiss := make([]float64, aantal)
-	Ekinb := make([]float64, aantal)
-	Ekinc := make([]float64, aantal)
-	Ef := make([]float64, aantal)
-	Eq := make([]float64, aantal)
-	Eblade := make([]float64, aantal)
-	Eqrower := make([]float64, aantal)
-	Ediss := make([]float64, aantal)
-	Eleg := make([]float64, aantal)
-	Ehandle := make([]float64, aantal)
-	Ew := make([]float64, aantal)
+	//	Ekinb := make([]float64, aantal)
+	// Ekinc := make([]float64, aantal)
+	// Ef := make([]float64, aantal)
+	// Eq := make([]float64, aantal)
+	// Eblade := make([]float64, aantal)
+	// Eqrower := make([]float64, aantal)
+	// Ediss := make([]float64, aantal)
+	// Eleg := make([]float64, aantal)
+	// Ehandle := make([]float64, aantal)
+	// Ew := make([]float64, aantal)
 	var Ewmin float64
 	var Pwmin float64
 	Pw := make([]float64, aantal)
@@ -537,11 +546,12 @@ func EnergyBalance(
 	ydotdot[1] = (ydot[1] - ydot[0]) / dt
 
 	xdotmean := stat.Mean(xdot, nil)
+
 	Pwmin = DragEq(mtotal, xdotmean, alfaref, 0, 0) * xdotmean
 
 	for i := 0; i < aantal; i++ {
 		Pq[i] = mcrew * (xdotdot[i] + ydotdot[i]) * ydot[i]
-		Pw[i] = DragEq(mtotal, xdot[i], alfaref, 0, 0)
+		Pw[i] = DragEq(mtotal, xdot[i], alfaref, 0, 0) * xdot[i]
 		Pmb[i] = mb * xdot[i] * xdotdot[i]
 		Pmc[i] = mcrew * (xdot[i] + ydot[i]) * (xdotdot[i] + ydotdot[i])
 		Phandle[i] = float64(Nrowers) * Fhandle[i] * xdot[i] * math.Cos(oarangle[i])
@@ -549,20 +559,19 @@ func EnergyBalance(
 		Pqrower[i] = math.Abs(Pq[i])
 		Pdiss[i] = Pqrower[i] - Pq[i]
 
-		if i > 1 {
-			Ekinb[i] = Ekinb[i-1] + Pmb[i]*dt
-			Ekinc[i] = Ekinc[i-1] + Pmc[i]*dt
-			Ef[i] = Ef[i-1] + Pf[i]*dt
-			Eq[i] = Eq[i-1] + Pq[i]*dt
-			Eblade[i] = Eblade[i-1] + Pbladeslip[i]*dt
-			Eqrower[i] = Eqrower[i-1] + Pqrower[i]*dt
-			Ediss[i] = Ediss[i-1] + Pdiss[i]*dt
-			Ew[i] = Eq[i-1] + Pw[i]*dt
-			Eleg[i] = Eleg[i-1] + Pleg[i]*dt
-			Ehandle[i] = Ehandle[i-1] + Phandle[i]*dt
-		}
-
 	}
+
+	// Ekinb = cumsum(Pmb, dt)
+	// Ekinc = cumsum(Pmc, dt)
+	// Ef = cumsum(Pf, dt)
+	// Eq = cumsum(Pq, dt)
+	Eblade := cumsum(Pbladeslip, dt)
+	// Eqrower = cumsum(Pqrower, dt)
+	Ediss := cumsum(Pdiss, dt)
+	Ew := cumsum(Pw, dt)
+
+	// Eleg = cumsum(Pleg, dt)
+	// Ehandle = cumsum(Phandle, dt)
 
 	Ewmin = Pwmin * 60. / tempo
 

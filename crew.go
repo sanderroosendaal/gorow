@@ -6,9 +6,9 @@ import (
 
 // technique functions
 func vcm(vhandle, strokelength, xhandle float64) float64 {
-	var vc = vhandle
-	if xhandle > 0 {
-		var xr = xhandle / strokelength
+	vc := vhandle
+	if xhandle >= 0 {
+		xr := xhandle / strokelength
 		vc = 0.85*vhandle - 0.75*vhandle*math.Pow(xr, 2)
 	}
 	return vc
@@ -279,7 +279,7 @@ func (c *Crew) dxhandle(vavg, trecovery, time float64) float64 {
 }
 
 func (c *Crew) forceprofile(F, x float64) float64 {
-	return c.strokeprofile.forceprofile(F, x)
+	return c.strokeprofile.forceprofile(F, x/c.strokelength)
 }
 
 // NewCrew inits Crew instance
