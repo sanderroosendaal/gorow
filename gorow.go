@@ -489,10 +489,10 @@ func EnergyBalance(
 		Fdrag := DragEq(mtotal, xdot[k-1], alfaref, 0, 0)
 		zdotdot[k] = -Fdrag / mtotal
 
-		vw := windv - vcstroke - zdot[k-1]
+		vw := windv - vcrecovery[k] - zdot[k-1]
 		Fwind := 0.0
 		if dowind {
-			Fwind = 0.5 * crewarea * Cdw * RhoAir * (math.Pow(float64(Nrowers), scalepower)) * vw * math.Abs(vw)
+			Fwind = 0.5 * crewarea * Cdw * RhoAir * math.Pow(float64(Nrowers), scalepower) * vw * math.Abs(vw)
 		}
 
 		zdotdot[k] = zdotdot[k] + Fwind/mtotal

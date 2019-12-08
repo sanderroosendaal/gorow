@@ -6,7 +6,7 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.002
+const relativetolerance = 0.01
 
 func GetTolerance(got float64, want float64) bool {
 	if want == 0.0 {
@@ -74,6 +74,13 @@ func TestDragEq(t *testing.T) {
 
 	got = DragEq(100, 4.5, 0, 0, 0)
 	want = 74.445191
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
+			got, want)
+	}
+
+	got = DragEq(110, 4.2, 3.5, 0, 0)
+	want = 69.51463720445798
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
@@ -339,22 +346,22 @@ func TestBladeForce(t *testing.T) {
 func TestEnergyBalance(t *testing.T) {
 
 	want := []float64{
-		0.01858776059237277,
-		3.2985877605923726,
-		3.6835177091990614,
+		0.08950832793934493,
+		3.3695083279393447,
+		3.700052225266561,
 		0.5223880597014925,
-		533.2826219735059,
-		266.64131098675296,
-		0.7041697652472537,
-		4.990902238775055,
+		561.8516594477129,
+		280.92582972385645,
+		0.718216020128656,
+		5.030428996890504,
 		2.4749540307829343,
-		0.0, // 3.85966122246113,
-		0.0, // 2.4654699039688994,
-		2.5159482079921207,
-		0.0, // 33.63800012574765,
+		0.0, // 3.8866101681872163,
+		0.0, // 2.499200316746598,
+		2.5554749661075697,
+		0.0, // 33.70434561030705,
 		0.0, // 0.5970149253731345,
-		12.41775124402881,
-		0.8637680813346094,
+		12.429634017382732,
+		0.8613483156138445,
 	}
 
 	c := NewCrew(
@@ -362,7 +369,7 @@ func TestEnergyBalance(t *testing.T) {
 		SinusRecovery{},
 		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
-	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, false)
+	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
 
 	if len(got) != len(want) {
 		t.Errorf("Function EnergyBalance did not return the expected slice length. Got %d, wanted %d",
