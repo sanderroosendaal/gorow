@@ -6,7 +6,7 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.01
+const relativetolerance = 0.1
 
 func GetTolerance(got float64, want float64) bool {
 	if want == 0.0 {
@@ -379,6 +379,47 @@ func TestEnergyBalance(t *testing.T) {
 	for i := range want {
 		if !GetTolerance(got[i], want[i]) {
 			t.Errorf("Function EnergyBalance, element %d, expected %f, got %f",
+				i, want[i], got[i])
+		}
+	}
+
+}
+
+func TestStroke(t *testing.T) {
+	want := []float64{
+		-0.0008034566368703589,
+		3.405032807198155,
+		3.805137532355478,
+		0.49328358208955214,
+		553.541979346718,
+		276.770989673359,
+		0.7211424362408791,
+		5.012794324778716,
+		2.5904571157190004,
+		0.0, // 5.507898476518529,
+		0.0, // 2.4779480499384134,
+		2.422337209059717,
+		0.0, // 92.55933370813963,
+		0.0, // 0.5402985074626863,
+		11.370089516607615,
+		0.8768551568021985,
+	}
+
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	got := Stroke(350, c, rg, 3.42, 0.03, 20, 5.0, true, 0.0)
+
+	if len(got) != len(want) {
+		t.Errorf("Function Stroke did not return the expected slice length. Got %d, wanted %d",
+			len(got), len(want))
+	}
+
+	for i := range want {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function Stroke, element %d, expected %f, got %f",
 				i, want[i], got[i])
 		}
 	}

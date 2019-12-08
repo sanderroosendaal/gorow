@@ -643,3 +643,84 @@ func EnergyBalance(
 	}
 
 }
+
+// Stroke calculates a few (aantal) strokes and returns parameters averaged over those strokes
+func Stroke(
+	F float64,
+	crew *Crew,
+	rigging *Rig,
+	v0 float64,
+	dt float64,
+	aantal int,
+	catchacceler float64,
+	dowind bool,
+	windv float64,
+) []float64 {
+
+	var dv, vavg, vend, vmin, vmax, ratio, energy, power, eff float64
+
+	var CNCheck, RIME, RIMCheck, RIMCatchE, RIMCatchD, DragEff, tcatchacceler float64
+
+	for i := 0; i < aantal; i++ {
+		var res = EnergyBalance(F, crew, rigging, v0, dt, tcatchacceler, windv, dowind)
+
+		dv = dv + res[0]
+		vend = vend + res[1]
+		vavg = vavg + res[2]
+		ratio = ratio + res[3]
+		energy = energy + res[4]
+		power = power + res[5]
+		vmin = vmin + res[8]
+		vmax = vmax + res[7]
+		eff = eff + res[6]
+
+		v0 = res[1]
+
+		CNCheck = CNCheck + res[9]
+		RIME = RIME + res[10]
+		RIMCheck = RIMCheck + res[11]
+		RIMCatchE = RIMCatchE + res[12]
+		RIMCatchD = RIMCatchD + res[13]
+		catchacceler = catchacceler + res[14]
+		DragEff = DragEff + res[15]
+		tcatchacceler = res[14]
+	}
+
+	faantal := float64(aantal)
+
+	dv = dv / faantal
+	vend = vend / faantal
+	vavg = vavg / faantal
+	vmin = vmin / faantal
+	vmax = vmax / faantal
+	ratio = ratio / faantal
+	energy = energy / faantal
+	power = power / faantal
+	eff = eff / faantal
+	CNCheck = CNCheck / faantal
+	RIME = RIME / faantal
+	RIMCheck = RIMCheck / faantal
+	RIMCatchE = RIMCatchE / faantal
+	RIMCatchD = RIMCatchD / faantal
+	DragEff = DragEff / faantal
+	catchacceler = catchacceler / faantal
+
+	return []float64{
+		dv,           // 0
+		vend,         // 1
+		vavg,         // 2
+		ratio,        // 3
+		energy,       // 4
+		power,        // 5
+		eff,          // 6
+		vmax,         // 7
+		vmin,         // 8
+		CNCheck,      // 9
+		RIME,         // 10
+		RIMCheck,     // 11
+		RIMCatchE,    // 12
+		RIMCatchD,    // 13
+		catchacceler, // 14
+		DragEff,      // 15
+	}
+}
