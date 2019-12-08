@@ -659,7 +659,8 @@ func Stroke(
 
 	var dv, vavg, vend, vmin, vmax, ratio, energy, power, eff float64
 
-	var CNCheck, RIME, RIMCheck, RIMCatchE, RIMCatchD, DragEff, tcatchacceler float64
+	var CNCheck, RIME, RIMCheck, RIMCatchE, RIMCatchD, DragEff float64
+	tcatchacceler := catchacceler
 
 	for i := 0; i < aantal; i++ {
 		var res = EnergyBalance(F, crew, rigging, v0, dt, tcatchacceler, windv, dowind)

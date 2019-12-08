@@ -6,7 +6,7 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.1
+const relativetolerance = 0.01
 
 func GetTolerance(got float64, want float64) bool {
 	if want == 0.0 {
@@ -18,6 +18,22 @@ func GetTolerance(got float64, want float64) bool {
 	}
 	var diff = math.Abs((got - want) / (want))
 	return diff < relativetolerance
+}
+
+func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
+	if len(got) != len(want) {
+		t.Errorf("Function %s did not return the expected slice length. Got %d, wanted %d",
+			name, len(got), len(want))
+		return
+	}
+
+	for i := range want {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function %s, element %d, expected %f, got %f",
+				name, i, want[i], got[i])
+		}
+	}
+	return
 }
 
 func TestSlices(t *testing.T) {
@@ -334,12 +350,7 @@ func TestBladeForce(t *testing.T) {
 
 	got = BladeForce(-0.7, rg, 4.5, 100)
 
-	for i := 0; i < len(want); i++ {
-		if !GetTolerance(got[i], want[i]) {
-			t.Errorf("Function BladeForce 2, element %d, expected %f, got %f",
-				i, want[i], got[i])
-		}
-	}
+	ToleranceTest(t, got, want, "BladeForce")
 
 }
 
@@ -371,17 +382,7 @@ func TestEnergyBalance(t *testing.T) {
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
 
-	if len(got) != len(want) {
-		t.Errorf("Function EnergyBalance did not return the expected slice length. Got %d, wanted %d",
-			len(got), len(want))
-	}
-
-	for i := range want {
-		if !GetTolerance(got[i], want[i]) {
-			t.Errorf("Function EnergyBalance, element %d, expected %f, got %f",
-				i, want[i], got[i])
-		}
-	}
+	ToleranceTest(t, got, want, "EnergyBalance")
 
 }
 
@@ -412,16 +413,6 @@ func TestStroke(t *testing.T) {
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	got := Stroke(350, c, rg, 3.42, 0.03, 20, 5.0, true, 0.0)
 
-	if len(got) != len(want) {
-		t.Errorf("Function Stroke did not return the expected slice length. Got %d, wanted %d",
-			len(got), len(want))
-	}
-
-	for i := range want {
-		if !GetTolerance(got[i], want[i]) {
-			t.Errorf("Function Stroke, element %d, expected %f, got %f",
-				i, want[i], got[i])
-		}
-	}
+	ToleranceTest(t, got, want, "Stroke")
 
 }
