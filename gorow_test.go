@@ -65,7 +65,7 @@ func TestDragEq(t *testing.T) {
 			got, want)
 	}
 
-	got = DragEq(100, 4.5, 3.5, 1, 1)
+	got = DragEq(100, 4.5, 3.5, 0, 1)
 	want = 70.875
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
