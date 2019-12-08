@@ -6,11 +6,55 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.05
+const relativetolerance = 0.01
 
 func GetTolerance(got float64, want float64) bool {
+	if want == 0.0 {
+		if got == want {
+			return true
+		}
+		return false
+
+	}
 	var diff = math.Abs((got - want) / (want))
 	return diff < relativetolerance
+}
+
+func TestSlices(t *testing.T) {
+	s1 := []float64{1, 2}
+	s2 := []float64{3, 4}
+
+	got := slicesadd(s1, s2)
+	want := []float64{4, 6}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("Slices addition failed. Got %f, wanted %f\n", got[i], want[i])
+		}
+	}
+
+	got = slicesadd(s1, s2, s2)
+	want = []float64{7, 10}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("Slices addition failed. Got %f, wanted %f\n", got[i], want[i])
+		}
+	}
+
+	v := []float64{2, 1, 3, 4, 5, 123, 1}
+	smallest, biggest := sliceminmax(v)
+	wantbig := 123.0
+	wantsmall := 1.0
+
+	if smallest != wantsmall {
+		t.Errorf("Slices min failed. Got %f, wanted %f\n", smallest, wantsmall)
+	}
+
+	if biggest != wantbig {
+		t.Errorf("Slices min failed. Got %f, wanted %f\n", biggest, wantbig)
+	}
+
 }
 
 func TestDragEq(t *testing.T) {
@@ -35,6 +79,13 @@ func TestDragEq(t *testing.T) {
 			got, want)
 	}
 
+	got = DragEq(110, 4.2, 3.5, 0, 0)
+	want = 69.51463720445798
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
+			got, want)
+	}
+
 }
 
 func TestDRecovery(t *testing.T) {
@@ -47,7 +98,7 @@ func TestDRecovery(t *testing.T) {
 }
 
 func TestCrew(t *testing.T) {
-	var c = NewCrew(80, 1.4, 30, 0.5, StrongMiddle{frac: 0.5}, 1000., 1000.)
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{x1: 0.15, x2: 0.5, h1: 1.0, h2: 0.9}, 1000., 1000.)
 	var got = c.strokelength
 	var want = 1.4
 	if math.Abs(got-want) > tolerance {
@@ -67,6 +118,24 @@ func TestCrew(t *testing.T) {
 		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
 	}
 
+	want = 0.8346938775510204
+	got = c.vcm(1, 0.2)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 0.5400510204081632
+	got = c.vcm(1, 0.9)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
+	want = 0.2700255102040816
+	got = c.vcm(0.5, 0.9)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew vcm. Got %f, wanted %f\n", got, want)
+	}
+
 	var wantv = []float64{0.83469388, 0.91816327, 1.00163265}
 	var vhandle = []float64{1, 1.1, 1.2}
 	var xhandle = []float64{0.2, 0.2, 0.2}
@@ -76,6 +145,18 @@ func TestCrew(t *testing.T) {
 		if math.Abs(gotv[i]-wantv[i]) > tolerance {
 			t.Errorf("Crew vcma, got %f, wanted %f", gotv[i], wantv[i])
 		}
+	}
+
+	want = -0.7853981633974483
+	got = c.vhandle(0.5, 2.0, 1.0)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew sinus recovery error, got %f, wanted %f", got, want)
+	}
+
+	want = -0.5
+	got = c.dxhandle(0.5, 2.0, 1.0)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Crew flat recovery error, got %f, wanted %f", got, want)
 	}
 }
 
@@ -185,6 +266,33 @@ func TestDFootboard(t *testing.T) {
 	}
 }
 
+func TestLinSpace(t *testing.T) {
+	want := []float64{1., 1.02040816, 1.04081633, 1.06122449, 1.08163265,
+		1.10204082, 1.12244898, 1.14285714, 1.16326531, 1.18367347,
+		1.20408163, 1.2244898, 1.24489796, 1.26530612, 1.28571429,
+		1.30612245, 1.32653061, 1.34693878, 1.36734694, 1.3877551,
+		1.40816327, 1.42857143, 1.44897959, 1.46938776, 1.48979592,
+		1.51020408, 1.53061224, 1.55102041, 1.57142857, 1.59183673,
+		1.6122449, 1.63265306, 1.65306122, 1.67346939, 1.69387755,
+		1.71428571, 1.73469388, 1.75510204, 1.7755102, 1.79591837,
+		1.81632653, 1.83673469, 1.85714286, 1.87755102, 1.89795918,
+		1.91836735, 1.93877551, 1.95918367, 1.97959184, 2.}
+
+	got := LinSpace(1, 2, 50)
+
+	if len(got) != len(want) {
+		t.Errorf("Function LinSpace did not return the expected slice. Got %d, wanted %d",
+			len(got), len(want))
+	}
+
+	for i := range got {
+		if math.Abs(got[i]-want[i]) > tolerance {
+			t.Errorf("Function Linspace %d, got %f, wanted %f", i, got[i], want[i])
+		}
+	}
+
+}
+
 func TestBladeForce(t *testing.T) {
 	var want = []float64{
 		1.8192760229325606,
@@ -214,4 +322,65 @@ func TestBladeForce(t *testing.T) {
 				i, want[i], got[i])
 		}
 	}
+
+	want = []float64{2.0803788704765536,
+		99.99842385483569,
+		76.4830132261339,
+		-99.73887777592651,
+		7.200071767014857,
+		-0.14362994318676583,
+		0.010368533533736905,
+		-0.07206421091268539}
+
+	got = BladeForce(-0.7, rg, 4.5, 100)
+
+	for i := 0; i < len(want); i++ {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function BladeForce 2, element %d, expected %f, got %f",
+				i, want[i], got[i])
+		}
+	}
+
+}
+
+func TestEnergyBalance(t *testing.T) {
+
+	want := []float64{
+		0.08950832793934493,
+		3.3695083279393447,
+		3.700052225266561,
+		0.5223880597014925,
+		561.8516594477129,
+		280.92582972385645,
+		0.718216020128656,
+		5.030428996890504,
+		2.4749540307829343,
+		0.0, // 3.8866101681872163,
+		0.0, // 2.499200316746598,
+		2.5554749661075697,
+		0.0, // 33.70434561030705,
+		0.0, // 0.5970149253731345,
+		12.429634017382732,
+		0.8613483156138445,
+	}
+
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
+
+	if len(got) != len(want) {
+		t.Errorf("Function EnergyBalance did not return the expected slice length. Got %d, wanted %d",
+			len(got), len(want))
+	}
+
+	for i := range want {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function EnergyBalance, element %d, expected %f, got %f",
+				i, want[i], got[i])
+		}
+	}
+
 }
