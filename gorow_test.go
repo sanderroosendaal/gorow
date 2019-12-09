@@ -6,7 +6,7 @@ import (
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.01
+const relativetolerance = 0.05
 
 func GetTolerance(got float64, want float64) bool {
 	if want == 0.0 {
@@ -415,4 +415,23 @@ func TestStroke(t *testing.T) {
 
 	ToleranceTest(t, got, want, "Stroke")
 
+}
+
+func TestConstantVelo(t *testing.T) {
+	want := []float64{
+		249.34555283522275,
+		3.4481771832103107,
+		0.5462686567164179,
+		199.53058042827024,
+		0.7239294989576714,
+	}
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	got := ConstantVeloFast(3.42, c, rg, 0.03, 5, 5, 100, 400, 5, 0.0, true)
+
+	ToleranceTest(t, got, want, "ConstantVeloFast")
 }

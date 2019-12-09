@@ -1,10 +1,9 @@
 package gorow
 
 import (
-	"math"
-
 	"github.com/cnkei/gospline"
-	"github.com/pa-m/sklearn/interpolate"
+	//	"github.com/pa-m/sklearn/interpolate"
+	"github.com/sgreben/piecewiselinear"
 )
 
 func cumsum(x []float64, m float64) []float64 {
@@ -16,7 +15,8 @@ func cumsum(x []float64, m float64) []float64 {
 }
 
 func srinterpol1(x []float64, y []float64, target float64) float64 {
-	f := interpolate.Interp1d(x, y)
+	// f := interpolate.Interp1d(x, y)
+	f := piecewiselinear.Function{X: x, Y: y}
 
 	var newx = LinSpace(x[0], x[len(x)-1], 100*len(x))
 	var newy = LinSpace(x[0], x[len(x)-1], 100*len(x))
@@ -25,8 +25,9 @@ func srinterpol1(x []float64, y []float64, target float64) float64 {
 	var minindex = 0
 
 	for i := range newx {
-		newy[i] = f(newx[i])
-		var ysq = math.Pow(target-newy[i], 2)
+		// newy[i] = f(newx[i])
+		newy[i] = f.At(newx[i])
+		var ysq = (target - newy[i]) * (target - newy[i])
 		if ysq < minysq {
 			minysq = ysq
 			minindex = i
@@ -48,7 +49,7 @@ func srinterpol2(x []float64, y []float64, target float64) float64 {
 	var minindex = 0
 
 	for i, val := range newy {
-		var ysq = math.Pow(target-val, 2)
+		var ysq = (target - val) * (target - val)
 		if ysq < minysq {
 			minysq = ysq
 			minindex = i
