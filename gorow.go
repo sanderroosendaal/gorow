@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -62,19 +61,6 @@ func slicesadd(vs ...[]float64) []float64 {
 	return out
 }
 
-func slicenegative(vs []float64) []float64 {
-	out := make([]float64, len(vs))
-	for i, v := range vs {
-		out[i] = -v
-	}
-	return out
-}
-
-// VecLinSpace to create a linear range as a gonum VecDense
-func VecLinSpace(start float64, stop float64, N int) *mat.VecDense {
-	return mat.NewVecDense(N, LinSpace(start, stop, N))
-}
-
 // LinSpace to create a linear range
 func LinSpace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
@@ -83,6 +69,15 @@ func LinSpace(start float64, stop float64, N int) []float64 {
 		rnge[x] = start + step*float64(x)
 	}
 
+	return rnge
+}
+
+// ConstSpace to create a array of value
+func ConstSpace(value float64, N int) []float64 {
+	rnge := make([]float64, N)
+	for x := range rnge {
+		rnge[x] = value
+	}
 	return rnge
 }
 
@@ -328,33 +323,33 @@ func EnergyBalance(
 
 	time := LinSpace(0, 60./tempo, aantal)
 
-	vs := LinSpace(0, 0, aantal)
-	vb := LinSpace(0, 0, aantal)
-	vc := LinSpace(0, 0, aantal)
+	vs := make([]float64, aantal)
+	vb := make([]float64, aantal)
+	vc := make([]float64, aantal)
 
-	oarangle := LinSpace(0, 0, aantal)
-	xblade := LinSpace(0, 0, aantal)
-	Fhandle := LinSpace(0, 0, aantal)
-	Fblade := LinSpace(0, 0, aantal)
-	Fprop := LinSpace(0, 0, aantal)
+	oarangle := make([]float64, aantal)
+	xblade := make([]float64, aantal)
+	Fhandle := make([]float64, aantal)
+	Fblade := make([]float64, aantal)
+	Fprop := make([]float64, aantal)
 
-	Pbladeslip := LinSpace(0, 0, aantal)
+	Pbladeslip := make([]float64, aantal)
 
-	xdotdot := LinSpace(0, 0, aantal)
-	zdotdot := LinSpace(0, 0, aantal)
-	ydotdot := LinSpace(0, 0, aantal)
+	xdotdot := make([]float64, aantal)
+	zdotdot := make([]float64, aantal)
+	ydotdot := make([]float64, aantal)
 
-	xdot := LinSpace(v0, v0, aantal)
-	ydot := LinSpace(v0, v0, aantal)
-	zdot := LinSpace(v0, v0, aantal)
+	xdot := ConstSpace(v0, aantal)
+	ydot := ConstSpace(v0, aantal)
+	zdot := ConstSpace(v0, aantal)
 
-	Pf := LinSpace(0, 0, aantal)
+	Pf := make([]float64, aantal)
 
-	Flift := LinSpace(0, 0, aantal)
-	Fbldrag := LinSpace(0, 0, aantal)
-	attackangle := LinSpace(0, 0, aantal)
-	Clift := LinSpace(0, 0, aantal)
-	Cdrag := LinSpace(0, 0, aantal)
+	Flift := make([]float64, aantal)
+	Fbldrag := make([]float64, aantal)
+	attackangle := make([]float64, aantal)
+	Clift := make([]float64, aantal)
+	Cdrag := make([]float64, aantal)
 
 	mtotal := float64(Nrowers)*mc + mb
 	mcrew := float64(Nrowers) * mc
