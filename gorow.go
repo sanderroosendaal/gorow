@@ -255,7 +255,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 
 	// wg.Wait()
 
-	phidot1 = srinterpol1(phidot, FRv, fblade)
+	phidot1, _ = srinterpol3(phidot, FRv, fblade)
 
 	var vblade1 = phidot1 * lout
 	var u1 = vblade1 - vb*math.Cos(oarangle)
@@ -750,11 +750,11 @@ func ConstantVeloFast(
 			vend = res[1]
 			ca = res[14]
 		}
-		res := Stroke(F[i], crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		res := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
 		velocity[i] = res[2]
 	}
 
-	fres := srinterpol1(F, velocity, velo)
+	fres, _ := srinterpol3(F, velocity, velo)
 	// fmt.Println(fres, velocity, F)
 	dv = 1.0
 
@@ -779,4 +779,64 @@ func ConstantVeloFast(
 		eff,   // 4
 	}
 
+}
+
+// ConstantWattFast returns force, average speed given input power in Watt
+func ConstantWattFast(
+	watt float64,
+	crew *Crew,
+	rigging *Rig,
+	timestep float64,
+	aantal int,
+	aantal2 int,
+	Fmin float64,
+	Fmax float64,
+	catchacceler float64,
+	windv float64,
+	dowind bool,
+	max_iterations_allowed int,
+) []float64 {
+
+	F := LinSpace(Fmin, Fmax, aantal)
+	power := make([]float64, aantal)
+
+	ca := catchacceler
+	dv := 1.
+	vend := 4.0
+
+	for i, ff := range F {
+		for dv/vend > 0.001 {
+			res := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			dv = res[0]
+			vend = res[1]
+			ca = res[14]
+		}
+		res := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		power[i] = res[5]
+	}
+
+	fres, _ := srinterpol3(F, power, watt)
+
+	dv = 1.0
+
+	for count := 0; dv/vend > 0.001 && count <= max_iterations_allowed; count++ {
+		res := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		dv = res[0]
+		vend = res[1]
+		ca = res[14]
+	}
+
+	res := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	vavg := res[2]
+	ratio := res[3]
+	pw := res[5]
+	eff := res[6]
+
+	return []float64{
+		fres,  // 0
+		vavg,  // 1
+		ratio, // 2
+		pw,    // 3
+		eff,   // 4
+	}
 }

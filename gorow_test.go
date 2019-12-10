@@ -36,6 +36,20 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 	return
 }
 
+func TestInterPol3(t *testing.T) {
+	x := []float64{1, 2, 4, 5, 6}
+	y := []float64{1, 2, 4, 5, 6}
+
+	want := 3.0
+	got, _ := srinterpol3(x, y, 3)
+
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Interpol3 equation gave incorrect result. Got %f, wanted %f\n",
+			got, want)
+	}
+
+}
+
 func TestSlices(t *testing.T) {
 	s1 := []float64{1, 2}
 	s2 := []float64{3, 4}
@@ -434,4 +448,24 @@ func TestConstantVelo(t *testing.T) {
 	got := ConstantVeloFast(3.42, c, rg, 0.03, 5, 5, 100, 400, 5, 0.0, true)
 
 	ToleranceTest(t, got, want, "ConstantVeloFast")
+}
+
+func TestConstantWatt(t *testing.T) {
+	want := []float64{
+		250,
+		3.44,
+		0.54,
+		199,
+		0.723,
+	}
+
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	got := ConstantWattFast(200, c, rg, 0.03, 5, 5, 50, 1000, 5, 0, true, 15)
+	ToleranceTest(t, got, want, "ConstantWattFast")
+
 }
