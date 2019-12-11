@@ -16,6 +16,11 @@ func GetTolerance(got float64, want float64) bool {
 		return false
 
 	}
+
+	if math.IsNaN(want) && math.IsNaN(got) {
+		return true
+	}
+
 	var diff = math.Abs((got - want) / (want))
 	return diff < relativetolerance
 }
@@ -34,6 +39,10 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 		}
 	}
 	return
+}
+
+func TestCSVReader(t *testing.T) {
+	ReadCSV("testdata.csv")
 }
 
 func TestInterPol3(t *testing.T) {
@@ -468,4 +477,23 @@ func TestConstantWatt(t *testing.T) {
 	got := ConstantWattFast(200, c, rg, 0.03, 5, 5, 50, 1000, 5, 0, true, 15)
 	ToleranceTest(t, got, want, "ConstantWattFast")
 
+}
+
+func TestPhysGetPower(t *testing.T) {
+	want := []float64{
+		237.,
+		0.522,
+		323.,
+		139.,
+		math.NaN(),
+	}
+
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	got, _ := PhysGetPower(3.5, c, rg, 90., 2.1, 160., 0)
+	ToleranceTest(t, got, want, "ConstantWattFast")
 }

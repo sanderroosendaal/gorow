@@ -840,3 +840,47 @@ func ConstantWattFast(
 		eff,   // 4
 	}
 }
+
+func tailwind(
+	bearing float64,
+	vwind float64,
+	winddirection float64,
+	vstream float64,
+) float64 {
+	b := bearing * math.Pi / 180.
+	w := winddirection * math.Pi / 180.
+
+	vtail := -vwind*math.Cos(w-b) - vstream
+
+	return vtail
+}
+
+// PhysGetPower Gets power and no wind pace
+func PhysGetPower(
+	velo float64,
+	rower *Crew,
+	rigging *Rig,
+	bearing float64,
+	vwind float64,
+	winddirection float64,
+	vstream float64,
+) ([]float64, error) {
+
+	tw := tailwind(bearing, vwind, winddirection, vstream)
+	velowater := velo - vstream
+	res := ConstantVeloFast(velowater, rower, rigging, 0.03, 5, 5, 50, 600, 5, tw, true)
+
+	force := res[0]
+	power := res[3]
+	ratio := res[2]
+
+	res2 := ConstantWattFast(power, rower, rigging, 0.03, 5, 5, 50, 600, 5, 0, true, 15)
+	pnowind := 500. / res2[1]
+
+	return []float64{
+		power,
+		ratio,
+		force,
+		pnowind,
+		math.NaN()}, nil
+}
