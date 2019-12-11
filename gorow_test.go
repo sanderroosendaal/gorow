@@ -1,6 +1,7 @@
 package gorow
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -42,7 +43,21 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 }
 
 func TestCSVReader(t *testing.T) {
-	ReadCSV("testdata.csv")
+	strokes := ReadCSV("testdata.csv")
+	want := 191
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+}
+
+func TestOTWSetPower(t *testing.T) {
+	strokes := ReadCSV("otw.csv")
+	strokes = strokes[100:120]
+	AddBearing(strokes)
+	fmt.Printf("Before: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
+	OTWSetPower(strokes)
+	fmt.Printf("After: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
 }
 
 func TestInterPol3(t *testing.T) {

@@ -794,7 +794,7 @@ func ConstantWattFast(
 	catchacceler float64,
 	windv float64,
 	dowind bool,
-	max_iterations_allowed int,
+	maxIterationsAllowed int,
 ) []float64 {
 
 	F := LinSpace(Fmin, Fmax, aantal)
@@ -819,7 +819,7 @@ func ConstantWattFast(
 
 	dv = 1.0
 
-	for count := 0; dv/vend > 0.001 && count <= max_iterations_allowed; count++ {
+	for count := 0; dv/vend > 0.001 && count <= maxIterationsAllowed; count++ {
 		res := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
 		dv = res[0]
 		vend = res[1]
