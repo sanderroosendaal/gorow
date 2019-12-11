@@ -33,6 +33,10 @@ func ReadCSV(f string) {
 	csvFile, _ := os.Open(f)
 	defer csvFile.Close()
 	reader := csv.NewReader(csvFile)
+	// should be for record,err = reader.Read
+	// dict[header[i]] = record[i]
+	// https://gist.github.com/drernie/5684f9def5bee832ebc50cabb46c377a
+	// rows = append(rows.dict)
 	records, err := reader.ReadAll()
 	if err != nil {
 		log.Fatal(err)
