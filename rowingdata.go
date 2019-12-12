@@ -18,6 +18,14 @@ import (
 // LbstoN convert lbs of force to Newton
 const LbstoN = 4.44822
 
+func reverseMap(m map[string]string) map[string]string {
+	n := make(map[string]string)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
+}
+
 // StrokeRecord sort of dataframe
 type StrokeRecord struct {
 	timestamp          float64
@@ -84,6 +92,9 @@ var FieldMapping = map[string]string{
 	"longitude":          " longitude",                 //longitude          float64
 	"bearing":            " bearing",                   //bearing            float64
 }
+
+// InverseFieldMapping returns key value exchanged of FieldMapping
+var InverseFieldMapping = reverseMap(FieldMapping)
 
 func getfloatrecord(s string) (float64, error) {
 	return strconv.ParseFloat(strings.TrimSpace(s), 64)
