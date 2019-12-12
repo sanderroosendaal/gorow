@@ -2,12 +2,17 @@ package gorow
 
 import (
 	"encoding/csv"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/structs"
 )
 
 // LbstoN convert lbs of force to Newton
@@ -39,12 +44,100 @@ type StrokeRecord struct {
 	bearing            float64
 }
 
+// GetField gets field value as float from StrokeRecord
+func GetField(s *StrokeRecord, field string) (float64, error) {
+
+	r := reflect.ValueOf(s)
+	f := reflect.Indirect(r).FieldByName(field)
+	tip := f.Type().Name()
+	switch tip {
+	case "float64":
+		return float64(f.Float()), nil
+	case "int":
+		return float64(f.Int()), nil
+	}
+	return 0, errors.New("GetField returned an invalid type")
+}
+
+// FieldMapping maps StrokeRecord field names to CSV header names
+var FieldMapping = map[string]string{
+	"timestamp":          "TimeStamp (sec)",
+	"distance":           " Horizontal (meters)",
+	"spm":                " Cadence (stokes/min)",
+	"hr":                 " HRCur (bpm)",
+	"pace":               " Stroke500mPace (sec/500m)", //pace               float64
+	"power":              " Power (watts)",             //power              float64
+	"drivelength":        " DriveLength (meters)",      //drivelength        float64
+	"strokedistance":     " StrokeDistance (meters)",   //strokedistance     float64
+	"drivetime":          " drivetime",                 //drivetime          float64
+	"dragfactor":         " DragFactor",                //dragfactor         int
+	"strokerecoverytime": " StrokeRecoveryTime (ms)",   //strokerecoverytime float64
+	"workperstroke":      " WorkPerStroke (joules)",    //workperstroke      float64
+	"averageforce":       " AverageDriveForce (lbs)",   //averageforce       float64
+	"peakforce":          " PeakDriveForce (lbs)",      //peakforce          float64
+	"velo":               " Speed (m/sec)",             //velo               float64
+	"lapnr":              " lapIdx",                    //lapnr              int
+	"intervaltime":       " ElapsedTime (sec)",         //intervaltime       float64
+	"calories":           " Calories (kCal)",           //calories           float64
+	"workoutstate":       " WorkoutState",              //workoutstate       int
+	"latitude":           " latitude",                  //latitude           float64
+	"longitude":          " longitude",                 //longitude          float64
+	"bearing":            " bearing",                   //bearing            float64
+}
+
 func getfloatrecord(s string) (float64, error) {
 	return strconv.ParseFloat(strings.TrimSpace(s), 64)
 }
 
 func getintrecord(s string) (int, error) {
 	return strconv.Atoi(strings.TrimSpace(s))
+}
+
+func exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+// WriteCSV writes data to file
+func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err error) {
+	if exists(f) && !overwrite {
+		err := errors.New("File exists and overwrite was set to false")
+		return false, err
+	}
+	// create records
+	var records [][]string
+	names := structs.Names(&StrokeRecord{})
+	var header []string
+	for _, name := range names {
+		header = append(header, FieldMapping[name])
+	}
+	records = append(records, header)
+	for _, stroke := range strokes {
+		var record []string
+		for _, name := range names {
+			value, err := GetField(&stroke, name)
+			if err != nil {
+				value = 0
+			}
+			record = append(record, fmt.Sprintf("%f", value))
+		}
+		records = append(records, record)
+	}
+	// file does not exist or overwrite is set to true
+	csvFile, _ := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
+	defer csvFile.Close()
+	// create writer
+	w := csv.NewWriter(csvFile)
+	// write header
+	w.WriteAll(records)
+	if err := w.Error(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // ReadCSV reads rowing data into data frame

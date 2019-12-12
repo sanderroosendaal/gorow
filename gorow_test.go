@@ -42,12 +42,36 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 	return
 }
 
+func TestGetField(t *testing.T) {
+	stroke := StrokeRecord{spm: 22}
+	fmt.Println(stroke.spm)
+	got, _ := GetField(&stroke, "spm")
+	want := 22.0
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("GetField gave incorrect result. Got %f, wanted %f\n",
+			got, want)
+	}
+}
+
 func TestCSVReader(t *testing.T) {
 	strokes := ReadCSV("testdata.csv")
 	want := 191
 	got := len(strokes)
 	if want != got {
 		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+}
+
+func TestCSVReaderWriter(t *testing.T) {
+	strokes := ReadCSV("testdata.csv")
+	want := 191
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+	ok, err := WriteCSV(strokes, "out2.csv", true)
+	if !ok {
+		t.Errorf("CSVWriter: %v", err)
 	}
 }
 
