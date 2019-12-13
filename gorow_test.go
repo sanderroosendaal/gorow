@@ -77,7 +77,7 @@ func TestCSVReaderWriter(t *testing.T) {
 
 func TestOTWSetPower(t *testing.T) {
 	strokes := ReadCSV("otw.csv")
-	// strokes = strokes[100:120]
+	strokes = strokes[100:120]
 	AddBearing(strokes)
 	fmt.Printf("Before: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
 	OTWSetPower(strokes)
