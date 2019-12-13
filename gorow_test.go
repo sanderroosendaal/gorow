@@ -45,7 +45,7 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 func TestGetField(t *testing.T) {
 	stroke := StrokeRecord{spm: 22}
 	fmt.Println(stroke.spm)
-	got, _ := GetField(&stroke, "spm")
+	got, _ := stroke.GetField("spm")
 	want := 22.0
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("GetField gave incorrect result. Got %f, wanted %f\n",

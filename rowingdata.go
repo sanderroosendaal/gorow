@@ -53,7 +53,7 @@ type StrokeRecord struct {
 }
 
 // GetField gets field value as float from StrokeRecord
-func GetField(s *StrokeRecord, field string) (float64, error) {
+func (s *StrokeRecord) GetField(field string) (float64, error) {
 
 	r := reflect.ValueOf(s)
 	f := reflect.Indirect(r).FieldByName(field)
@@ -130,7 +130,7 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err er
 	for _, stroke := range strokes {
 		var record []string
 		for _, name := range names {
-			value, err := GetField(&stroke, name)
+			value, err := stroke.GetField(name)
 			if err != nil {
 				value = 0
 			}
