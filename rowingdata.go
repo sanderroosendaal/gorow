@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/fatih/structs"
 )
@@ -287,19 +288,42 @@ func OTWSetPower(strokes []StrokeRecord) {
 		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
-	// newstrokes := strokes
+	// a blocking channel to keep concurrency under control
+	semaphoreChan := make(chan struct{}, 4)
+	defer close(semaphoreChan)
+
+	// a wait group enables the main process a wait for goroutines to finish
+	wg := sync.WaitGroup{}
 
 	for i, stroke := range strokes {
-		c.tempo = stroke.spm
-		res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
-		if err != nil {
-			break // ignore value
-		}
-		pwr := res[0]
-		frc := res[2]
-		strokes[i].power = pwr
-		strokes[i].averageforce = frc / LbstoN
+		// increment the wait group internal counter
+		wg.Add(1)
+
+		go func(i int, stroke StrokeRecord, c *Crew, rg *Rig) {
+			// block until the semaphore channel has room
+			// this could also be moved out of the goroutine
+			// which would make sense if the list is huge
+			semaphoreChan <- struct{}{}
+
+			c.tempo = stroke.spm
+			res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
+			if err == nil {
+
+				pwr := res[0]
+				frc := res[2]
+				strokes[i].power = pwr
+				strokes[i].averageforce = frc / LbstoN
+
+			}
+
+			// tell the wait group that we be done
+			wg.Done()
+			// clear a spot in the semaphore channel
+			<-semaphoreChan
+		}(i, stroke, c, rg)
 	}
+	// wait for all the goroutines to be done
+	wg.Wait()
 }
 
 // AveragePower calculates average power
