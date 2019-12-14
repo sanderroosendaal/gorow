@@ -1,6 +1,9 @@
 package gorow
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 // Rig holds boat rigging parameters and has methods to manipulate them
 type Rig struct {
@@ -53,6 +56,21 @@ func (rg *Rig) oarangle(x float64) float64 {
 	var dist = rg.dcatch() + x
 	var angle = math.Asin(dist / rg.Lin)
 	return (angle)
+}
+
+// ToJSON exports rig to JSON
+func (rg *Rig) ToJSON() (string, error) {
+	b, err := json.Marshal(rg)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// FromJSON sets rig from JSON
+func (rg *Rig) FromJSON(s string) error {
+	err := json.Unmarshal([]byte(s), rg)
+	return err
 }
 
 // NewRig initiates a new boat rigging
