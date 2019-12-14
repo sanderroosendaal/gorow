@@ -80,7 +80,7 @@ func TestOTWSetPower(t *testing.T) {
 	strokes = strokes[100:120]
 	AddBearing(strokes)
 	fmt.Printf("Before: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
-	OTWSetPower(strokes)
+	OTWSetPower(strokes, "maherio", "http://localhost:8000/rowers/record-progress/testprogress/")
 	fmt.Printf("After: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
 }
 
@@ -319,8 +319,8 @@ func TestBasics(t *testing.T) {
 	var mb = 14.0
 
 	var v = 3.9
-	var lout = rg.lscull - rg.lin
-	var got = vhandle(v, rg.lin, lout, mc, mb)
+	var lout = rg.Lscull - rg.Lin
+	var got = vhandle(v, rg.Lin, lout, mc, mb)
 	var want = 1.373323
 
 	if math.Abs(got-want) > tolerance {

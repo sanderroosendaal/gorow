@@ -61,7 +61,7 @@ func slicesadd(vs ...[]float64) []float64 {
 	return out
 }
 
-// LinSpace to create a linear range
+// LinSpace to create a Linear range
 func LinSpace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
 	var step = (stop - start) / float64(N-1)
@@ -136,9 +136,9 @@ func vboat(mc float64, mb float64, vc float64) float64 {
 	return (mc * vc / (mc + mb))
 }
 
-func vhandle(v float64, lin float64, lout float64, mc float64, mb float64) float64 {
+func vhandle(v float64, Lin float64, lout float64, mc float64, mb float64) float64 {
 	var gamma = mc / (mc + mb)
-	var vc = lin * v / (lout + gamma*lin)
+	var vc = Lin * v / (lout + gamma*Lin)
 	return (vc)
 }
 
@@ -199,9 +199,9 @@ func deFootboard(mc, mb, vs1, vs2 float64) float64 {
 
 // BladeForce calculates the blade slip given a handle force
 func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
-	var lin = rigging.lin
-	var lscull = rigging.lscull
-	var lout = lscull - lin
+	var Lin = rigging.Lin
+	var Lscull = rigging.Lscull
+	var lout = Lscull - Lin
 	var area = rigging.bladearea()
 
 	const N = 50
@@ -304,16 +304,16 @@ func EnergyBalance(
 		catchacceler = 50
 	}
 
-	lin := rigging.lin
-	lscull := rigging.lscull
-	lout := lscull - lin
+	Lin := rigging.Lin
+	Lscull := rigging.Lscull
+	lout := Lscull - Lin
 	tempo := crew.tempo
 	mc := crew.mc
-	mb := rigging.mb
+	mb := rigging.Mb
 
 	d := crew.strokelength
 	Nrowers := rigging.Nrowers
-	dragform := rigging.dragform
+	DragForm := rigging.DragForm
 
 	if catchacceler < 2 {
 		catchacceler = 2
@@ -373,10 +373,10 @@ func EnergyBalance(
 		vhand := catchacceler * (time[i] - time[0])
 		vcstroke = crew.vcm(vhand, handlepos)
 		// phidot := vb[i-1] * math.Cos(oarangle[i-1])
-		// vhand := phidot * lin * math.Cos(oarangle[i-1])
+		// vhand := phidot * Lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
 
-		alfaref := alfa * dragform
+		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = -Fdrag / mtotal
 
@@ -390,13 +390,13 @@ func EnergyBalance(
 		xdot[i] = zdot[i] - (mcrew/mtotal)*ydot[i]
 
 		Fi := crew.forceprofile(F, handlepos)
-		Fbladei := Fi * lin / lout
+		Fbladei := Fi * Lin / lout
 		// fmt.Println(i, Fbladei, Fi)
 		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fbladei)
 
 		phidot2 := res[0]
-		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
-		// fmt.Println(i, phidot2, lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
+		vhand2 := phidot2 * Lin * math.Cos(oarangle[i-1])
+		// fmt.Println(i, phidot2, Lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
 
 		vcstroke2 = crew.vcm(vhand2, handlepos)
 
@@ -419,7 +419,7 @@ func EnergyBalance(
 	for handlepos < d && i < len(time) {
 		Fi := crew.forceprofile(F, handlepos)
 		Fhandle[i-1] = Fi
-		Fblade[i-1] = Fi * lin / lout
+		Fblade[i-1] = Fi * Lin / lout
 
 		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fblade[i-1])
 		phidot := res[0]
@@ -431,12 +431,12 @@ func EnergyBalance(
 		Cdrag[i-1] = res[6]
 		attackangle[i-1] = res[7]
 
-		vhand := phidot * lin * math.Cos(oarangle[i-1])
+		vhand := phidot * Lin * math.Cos(oarangle[i-1])
 
 		vcstroke := crew.vcm(vhand, handlepos)
 		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*math.Cos(oarangle[i-1]))
 
-		alfaref := alfa * dragform
+		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = (Fprop[i-1] - Fdrag) / mtotal
 		vw := windv - vcstroke - zdot[i-1]
@@ -480,7 +480,7 @@ func EnergyBalance(
 		vhand := crew.vhandle(vavgrec, trecovery, time[k]-time[i])
 		vcrecovery[k] = crew.vcm(vhand, handlepos)
 
-		alfaref := alfa * dragform
+		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[k-1], alfaref, 0, 0)
 		zdotdot[k] = -Fdrag / mtotal
 
@@ -528,7 +528,7 @@ func EnergyBalance(
 	Phandle := make([]float64, aantal)
 	Pleg := make([]float64, aantal)
 
-	alfaref := alfa * dragform
+	alfaref := alfa * DragForm
 
 	// blade positions
 	for i := 0; i < aantal; i++ {

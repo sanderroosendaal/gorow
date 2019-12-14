@@ -7,11 +7,14 @@ import (
 	"io"
 	"log"
 	"math"
+	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/structs"
 )
@@ -279,8 +282,33 @@ func ReadCSV(f string) []StrokeRecord {
 	return rows
 }
 
+// reportprogress
+func postprogress(secret, progressurl string, progress int) (statuscode int) {
+	postData := url.Values{}
+	postData.Set("secret", secret)
+	postData.Set("progress", fmt.Sprintf("%d", progress))
+
+	req, err := http.NewRequest("POST", progressurl, strings.NewReader(postData.Encode()))
+	if err != nil {
+		return 408
+	}
+	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 408
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode
+}
+
 // OTWSetPower adds power for OTW rows
-func OTWSetPower(strokes []StrokeRecord) {
+func OTWSetPower(
+	strokes []StrokeRecord,
+	secret string,
+	progressurl string) {
 	// temporary default values
 	c := NewCrew(
 		75., 1.4, 30.0, 0.5,
@@ -294,6 +322,33 @@ func OTWSetPower(strokes []StrokeRecord) {
 
 	// a wait group enables the main process a wait for goroutines to finish
 	wg := sync.WaitGroup{}
+
+	// counter channel
+	var counter = make(chan struct{})
+	var done = make(chan struct{})
+
+	// start a counter/timer
+	if len(progressurl) > 0 {
+		go func(aantal int) {
+			var cntr int
+			ticker2 := time.NewTicker(1 * time.Second)
+			for {
+				select {
+				case <-counter:
+					cntr++
+				case <-done:
+					return
+				case <-ticker2.C:
+					perc := 100 * cntr / aantal
+					fmt.Printf("Percentage done: %d\n", perc)
+					postprogress(secret, progressurl, perc)
+				}
+			}
+		}(len(strokes))
+	} else {
+		close(counter)
+		close(done)
+	}
 
 	for i, stroke := range strokes {
 		// increment the wait group internal counter
@@ -318,12 +373,19 @@ func OTWSetPower(strokes []StrokeRecord) {
 
 			// tell the wait group that we be done
 			wg.Done()
+			// send signal to counter
+			if len(progressurl) > 0 {
+				counter <- struct{}{}
+			}
 			// clear a spot in the semaphore channel
 			<-semaphoreChan
 		}(i, stroke, c, rg)
 	}
 	// wait for all the goroutines to be done
 	wg.Wait()
+	if len(progressurl) > 0 {
+		done <- struct{}{}
+	}
 }
 
 // AveragePower calculates average power
