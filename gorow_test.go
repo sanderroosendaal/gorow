@@ -294,7 +294,10 @@ func TestRigExportImportFiles(t *testing.T) {
 		t.Errorf("Rigging reading from file yielded an error")
 	}
 
-	rg2.FromJSON(string(content))
+	err = rg2.FromJSON(string(content))
+	if err != nil {
+		t.Errorf("Rigging fromJSON an error")
+	}
 
 	wantf := rg.buitenhand()
 	gotf := rg2.buitenhand()
