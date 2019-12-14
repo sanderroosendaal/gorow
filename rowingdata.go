@@ -307,14 +307,10 @@ func postprogress(secret, progressurl string, progress int) (statuscode int) {
 // OTWSetPower adds power for OTW rows
 func OTWSetPower(
 	strokes []StrokeRecord,
+	c *Crew,
+	rg *Rig,
 	secret string,
 	progressurl string) {
-	// temporary default values
-	c := NewCrew(
-		75., 1.4, 30.0, 0.5,
-		SinusRecovery{},
-		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
-	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	// a blocking channel to keep concurrency under control
 	semaphoreChan := make(chan struct{}, 4)
@@ -339,7 +335,7 @@ func OTWSetPower(
 				case <-done:
 					return
 				case <-ticker2.C:
-					perc := 100 * cntr / aantal
+					perc := 100 * cntr / (aantal - 1)
 					fmt.Printf("Percentage done: %d\n", perc)
 					postprogress(secret, progressurl, perc)
 				}

@@ -77,11 +77,17 @@ func TestCSVReaderWriter(t *testing.T) {
 }
 
 func TestOTWSetPower(t *testing.T) {
+
+	// 1x
+	var rg = NewRig(0.9, 14, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 0.98)
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
+
+	fmt.Println("Done")
 	strokes := ReadCSV("otw.csv")
 	strokes = strokes[100:120]
 	AddBearing(strokes)
 	fmt.Printf("Before: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
-	OTWSetPower(strokes, "maherio", "http://localhost:8000/rowers/record-progress/testprogress/")
+	OTWSetPower(strokes, c, rg, "maherio", "http://localhost:8000/rowers/record-progress/testprogress/")
 	fmt.Printf("After: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
 }
 
