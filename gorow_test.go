@@ -2,6 +2,7 @@ package gorow
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
 	"testing"
 )
@@ -247,6 +248,60 @@ func TestRigZero(t *testing.T) {
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("buitenhand equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
+	}
+}
+
+func TestRigExportImport(t *testing.T) {
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	s, err := rg.ToJSON()
+	if err != nil {
+		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
+	}
+
+	want := 130
+	got := len(s)
+
+	if want != got {
+		t.Errorf("rigging ToJSON error. String length got %d, want %d", got, want)
+	}
+
+	var rg2 Rig
+
+	rg2.FromJSON(s)
+
+	wantf := rg.buitenhand()
+	gotf := rg2.buitenhand()
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("Rigging FromJSON equation gave incorrect result. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+}
+
+func TestRigExportImportFiles(t *testing.T) {
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	s, err := rg.ToJSON()
+	if err != nil {
+		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
+	}
+
+	err = ioutil.WriteFile("/tmp/dat1", []byte(s), 0644)
+
+	var rg2 Rig
+
+	content, err := ioutil.ReadFile("/tmp/dat1")
+	if err != nil {
+		t.Errorf("Rigging reading from file yielded an error")
+	}
+
+	rg2.FromJSON(string(content))
+
+	wantf := rg.buitenhand()
+	gotf := rg2.buitenhand()
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("Rigging FromJSON equation gave incorrect result. Got %f, wanted %f\n",
+			gotf, wantf)
 	}
 }
 
