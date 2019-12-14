@@ -176,9 +176,37 @@ func TestDRecovery(t *testing.T) {
 	}
 }
 
+func TestCrewExportImport(t *testing.T) {
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
+	s, err := c.ToJSON()
+	if err != nil {
+		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
+	}
+
+	want := 156
+	got := len(s)
+
+	if want != got {
+		t.Errorf("Crew ToJSON error. String length got %d, want %d", got, want)
+	}
+
+	var c2 Crew
+
+	c2.FromJSON(s)
+
+	wantf := c.Strokelength
+	gotf := c2.Strokelength
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("Rigging FromJSON equation gave incorrect result. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+
+}
+
 func TestCrew(t *testing.T) {
-	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{x1: 0.15, x2: 0.5, h1: 1.0, h2: 0.9}, 1000., 1000.)
-	var got = c.strokelength
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
+	var got = c.Strokelength
 	var want = 1.4
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Crew stroke length incorrect. Got %f, wanted %f\n", got, want)
@@ -498,7 +526,7 @@ func TestEnergyBalance(t *testing.T) {
 	c := NewCrew(
 		80., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
 
@@ -529,7 +557,7 @@ func TestStroke(t *testing.T) {
 	c := NewCrew(
 		80., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	got := Stroke(350, c, rg, 3.42, 0.03, 20, 5.0, true, 0.0)
 
@@ -548,7 +576,7 @@ func TestConstantVelo(t *testing.T) {
 	c := NewCrew(
 		80., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	got := ConstantVeloFast(3.42, c, rg, 0.03, 5, 5, 100, 400, 5, 0.0, true)
@@ -568,7 +596,7 @@ func TestConstantWatt(t *testing.T) {
 	c := NewCrew(
 		80., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	got := ConstantWattFast(200, c, rg, 0.03, 5, 5, 50, 1000, 5, 0, true, 15)
@@ -588,7 +616,7 @@ func TestPhysGetPower(t *testing.T) {
 	c := NewCrew(
 		80., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	got, _ := PhysGetPower(3.5, c, rg, 90., 2.1, 160., 0)

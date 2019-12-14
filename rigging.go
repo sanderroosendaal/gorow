@@ -58,7 +58,7 @@ func (rg *Rig) oarangle(x float64) float64 {
 	return (angle)
 }
 
-// ToJSON exports crew to JSON
+// ToJSON exports rig to JSON
 func (rg *Rig) ToJSON() (string, error) {
 	b, err := json.Marshal(rg)
 	if err != nil {

@@ -313,7 +313,7 @@ func OTWSetPower(
 	c := NewCrew(
 		75., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
 	// a blocking channel to keep concurrency under control
@@ -360,7 +360,7 @@ func OTWSetPower(
 			// which would make sense if the list is huge
 			semaphoreChan <- struct{}{}
 
-			c.tempo = stroke.spm
+			c.Tempo = stroke.spm
 			res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
 			if err == nil {
 
