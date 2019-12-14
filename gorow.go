@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -62,20 +61,7 @@ func slicesadd(vs ...[]float64) []float64 {
 	return out
 }
 
-func slicenegative(vs []float64) []float64 {
-	out := make([]float64, len(vs))
-	for i, v := range vs {
-		out[i] = -v
-	}
-	return out
-}
-
-// VecLinSpace to create a linear range as a gonum VecDense
-func VecLinSpace(start float64, stop float64, N int) *mat.VecDense {
-	return mat.NewVecDense(N, LinSpace(start, stop, N))
-}
-
-// LinSpace to create a linear range
+// LinSpace to create a Linear range
 func LinSpace(start float64, stop float64, N int) []float64 {
 	rnge := make([]float64, N)
 	var step = (stop - start) / float64(N-1)
@@ -83,6 +69,15 @@ func LinSpace(start float64, stop float64, N int) []float64 {
 		rnge[x] = start + step*float64(x)
 	}
 
+	return rnge
+}
+
+// ConstSpace to create a array of value
+func ConstSpace(value float64, N int) []float64 {
+	rnge := make([]float64, N)
+	for x := range rnge {
+		rnge[x] = value
+	}
 	return rnge
 }
 
@@ -111,7 +106,7 @@ func DragEq(displacement float64, velo float64,
 
 	// var D float64 = displacement/rho
 	var Re = boatlength * velo / kinvis
-	var Cf float64 = 0.075 / (math.Pow((math.Log10(Re) - 2.0), 2))
+	var Cf float64 = 0.075 / ((math.Log10(Re) - 2.0) * (math.Log10(Re) - 2.0))
 	var alpha = 0.5 * rho * wettedArea * Cf
 	alpha = alpha * corr
 	a1 = alpha / 0.8
@@ -132,56 +127,56 @@ func DragEq(displacement float64, velo float64,
 		fmt.Print("\n")
 	}
 
-	var W2 = a1 * math.Pow(velo, 2)
+	var W2 = a1 * velo * velo
 
 	return (W2)
 }
 
-func vboat(mc float64, mb float64, vc float64) float64 {
-	return (mc * vc / (mc + mb))
+func vboat(Mc float64, mb float64, vc float64) float64 {
+	return (Mc * vc / (Mc + mb))
 }
 
-func vhandle(v float64, lin float64, lout float64, mc float64, mb float64) float64 {
-	var gamma = mc / (mc + mb)
-	var vc = lin * v / (lout + gamma*lin)
+func vhandle(v float64, Lin float64, lout float64, Mc float64, mb float64) float64 {
+	var gamma = Mc / (Mc + mb)
+	var vc = Lin * v / (lout + gamma*Lin)
 	return (vc)
 }
 
-func dRecovery(dt, v, vc, dvc, mc, mb, alef, F float64) float64 {
+func dRecovery(dt, v, vc, dvc, Mc, mb, alef, F float64) float64 {
 	var dv float64
-	var vb = vboat(mc, mb, vc)
-	// var dvb = vboat(mc,mb,dvc)
-	var Ftot = F - alef*math.Pow((v-vb), 2)
-	dv = dt * Ftot / (mb + mc)
+	var vb = vboat(Mc, mb, vc)
+	// var dvb = vboat(Mc,mb,dvc)
+	var Ftot = F - alef*(v-vb)*(v-vb)
+	dv = dt * Ftot / (mb + Mc)
 	return (dv)
 }
 
-func dStroke(dt, v, vc, dvc, mc, mb, alef, F float64) float64 {
+func dStroke(dt, v, vc, dvc, Mc, mb, alef, F float64) float64 {
 	var dv float64
-	var vb = vboat(mc, mb, vc)
-	var Ftot = F - alef*math.Pow((v-vb), 2)
+	var vb = vboat(Mc, mb, vc)
+	var Ftot = F - alef*(v-vb)*(v-vb)
 
-	dv = dt * Ftot / (mb + mc)
+	dv = dt * Ftot / (mb + Mc)
 
 	return (dv)
 }
 
-func deFootboard(mc, mb, vs1, vs2 float64) float64 {
+func deFootboard(Mc, mb, vs1, vs2 float64) float64 {
 	var de float64
 	var vt float64
 
-	var vb1 = vboat(mc, mb, vs1)
-	var vb2 = vboat(mc, mb, vs2)
+	var vb1 = vboat(Mc, mb, vs1)
+	var vb2 = vboat(Mc, mb, vs2)
 
 	var vmb1 = vt - vb1
 	var vmb2 = vt - vb2
 
-	var vmc1 = vt + vs1 - vb1
-	var vmc2 = vt + vs2 - vb2
+	var vMc1 = vt + vs1 - vb1
+	var vMc2 = vt + vs2 - vb2
 
-	var e1 = 0.5*(mb*math.Pow(vmb1, 2)) + 0.5*mc*math.Pow(vmc1, 2)
-	var e2 = 0.5*(mb*math.Pow(vmb2, 2)) + 0.5*mc*math.Pow(vmc2, 2)
-	var eT = 0.5 * (mc + mb) * math.Pow(vt, 2)
+	var e1 = 0.5*(mb*vmb1*vmb1) + 0.5*Mc*vMc1*vMc1
+	var e2 = 0.5*(mb*vmb2*vmb2) + 0.5*Mc*vMc2*vMc2
+	var eT = 0.5 * (Mc + mb) * vt * vt
 
 	// var de2 = e2 - eT
 	// var de1 = e1 - eT
@@ -204,14 +199,14 @@ func deFootboard(mc, mb, vs1, vs2 float64) float64 {
 
 // BladeForce calculates the blade slip given a handle force
 func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
-	var lin = rigging.lin
-	var lscull = rigging.lscull
-	var lout = lscull - lin
+	var Lin = rigging.Lin
+	var Lscull = rigging.Lscull
+	var lout = Lscull - Lin
 	var area = rigging.bladearea()
 
 	const N = 50
 
-	// temporary variables
+	// Temporary variables
 	var phidot1 float64 // = 1.7498034669231506
 	var FR float64      // = 99.99941828917106
 
@@ -244,14 +239,14 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 		// defer wg.Done()
 		var u1 = vblade[i] - vb*math.Cos(oarangle)
 		u1v[i] = u1
-		var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
-		a = math.Atan(u1 / up)                               // angle of attack
-		CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+		var u = math.Sqrt(u1*u1 + up*up) // fluid velocity
+		a = math.Atan(u1 / up)           // angle of attack
+		CD = 2 * CLmax * math.Sin(a) * math.Sin(a)
 		CL = CLmax * math.Sin(2*a)
 
-		FL = 0.5 * CL * rho * area * math.Pow(u, 2)
-		FD = 0.5 * CD * rho * area * math.Pow(u, 2)
-		FRv[i] = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+		FL = 0.5 * CL * rho * area * u * u
+		FD = 0.5 * CD * rho * area * u * u
+		FRv[i] = math.Sqrt(FL*FL + FD*FD)
 		// Fprop = FRv[i] * math.Cos(oarangle)
 		av[i] = a
 
@@ -260,21 +255,21 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 
 	// wg.Wait()
 
-	phidot1 = srinterpol1(phidot, FRv, fblade)
+	phidot1, _ = srinterpol3(phidot, FRv, fblade)
 
 	var vblade1 = phidot1 * lout
 	var u1 = vblade1 - vb*math.Cos(oarangle)
 	up = vb * math.Sin(oarangle)
 
-	var u = math.Sqrt(math.Pow(u1, 2) + math.Pow(up, 2)) // fluid velocity
-	a = math.Atan(u1 / up)                               // angle of attack
+	var u = math.Sqrt(u1*u1 + up*up) // fluid velocity
+	a = math.Atan(u1 / up)           // angle of attack
 
-	CD = 2 * CLmax * math.Pow(math.Sin(a), 2)
+	CD = 2 * CLmax * math.Sin(a) * math.Sin(a)
 	CL = CLmax * math.Sin(2.*a)
 
-	FL = 0.5 * CL * rho * area * math.Pow(u, 2)
-	FD = 0.5 * CD * rho * area * math.Pow(u, 2)
-	FR = math.Sqrt(math.Pow(FL, 2) + math.Pow(FD, 2))
+	FL = 0.5 * CL * rho * area * u * u
+	FD = 0.5 * CD * rho * area * u * u
+	FR = math.Sqrt(FL*FL + FD*FD)
 	Fprop = FR * math.Cos(oarangle)
 
 	return []float64{
@@ -309,62 +304,62 @@ func EnergyBalance(
 		catchacceler = 50
 	}
 
-	lin := rigging.lin
-	lscull := rigging.lscull
-	lout := lscull - lin
-	tempo := crew.tempo
-	mc := crew.mc
-	mb := rigging.mb
+	Lin := rigging.Lin
+	Lscull := rigging.Lscull
+	lout := Lscull - Lin
+	Tempo := crew.Tempo
+	Mc := crew.Mc
+	mb := rigging.Mb
 
-	d := crew.strokelength
+	d := crew.Strokelength
 	Nrowers := rigging.Nrowers
-	dragform := rigging.dragform
+	DragForm := rigging.DragForm
 
 	if catchacceler < 2 {
 		catchacceler = 2
 	}
 
-	aantal := 1 + int(math.Round(60/(tempo*dt)))
+	aantal := 1 + int(math.Round(60/(Tempo*dt)))
 
-	time := LinSpace(0, 60./tempo, aantal)
+	time := LinSpace(0, 60./Tempo, aantal)
 
-	vs := LinSpace(0, 0, aantal)
-	vb := LinSpace(0, 0, aantal)
-	vc := LinSpace(0, 0, aantal)
+	vs := make([]float64, aantal)
+	vb := make([]float64, aantal)
+	vc := make([]float64, aantal)
 
-	oarangle := LinSpace(0, 0, aantal)
-	xblade := LinSpace(0, 0, aantal)
-	Fhandle := LinSpace(0, 0, aantal)
-	Fblade := LinSpace(0, 0, aantal)
-	Fprop := LinSpace(0, 0, aantal)
+	oarangle := make([]float64, aantal)
+	xblade := make([]float64, aantal)
+	Fhandle := make([]float64, aantal)
+	Fblade := make([]float64, aantal)
+	Fprop := make([]float64, aantal)
 
-	Pbladeslip := LinSpace(0, 0, aantal)
+	Pbladeslip := make([]float64, aantal)
 
-	xdotdot := LinSpace(0, 0, aantal)
-	zdotdot := LinSpace(0, 0, aantal)
-	ydotdot := LinSpace(0, 0, aantal)
+	xdotdot := make([]float64, aantal)
+	zdotdot := make([]float64, aantal)
+	ydotdot := make([]float64, aantal)
 
-	xdot := LinSpace(v0, v0, aantal)
-	ydot := LinSpace(v0, v0, aantal)
-	zdot := LinSpace(v0, v0, aantal)
+	xdot := ConstSpace(v0, aantal)
+	ydot := ConstSpace(v0, aantal)
+	zdot := ConstSpace(v0, aantal)
 
-	Pf := LinSpace(0, 0, aantal)
+	Pf := make([]float64, aantal)
 
-	Flift := LinSpace(0, 0, aantal)
-	Fbldrag := LinSpace(0, 0, aantal)
-	attackangle := LinSpace(0, 0, aantal)
-	Clift := LinSpace(0, 0, aantal)
-	Cdrag := LinSpace(0, 0, aantal)
+	Flift := make([]float64, aantal)
+	Fbldrag := make([]float64, aantal)
+	attackangle := make([]float64, aantal)
+	Clift := make([]float64, aantal)
+	Cdrag := make([]float64, aantal)
 
-	mtotal := float64(Nrowers)*mc + mb
-	mcrew := float64(Nrowers) * mc
+	mtotal := float64(Nrowers)*Mc + mb
+	Mcrew := float64(Nrowers) * Mc
 
 	var handlepos float64
 
 	// initial handle and boat velocities
 	vs[0] = v0
 	vb[0] = vb0
-	vc[0] = ((float64(Nrowers)*mc+mb)*vs[0] - mb*vb[0]) / (float64(Nrowers) * mc)
+	vc[0] = ((float64(Nrowers)*Mc+mb)*vs[0] - mb*vb[0]) / (float64(Nrowers) * Mc)
 	oarangle[0] = rigging.oarangle(0)
 	xblade[0] = -lout * math.Sin(oarangle[0])
 
@@ -378,10 +373,10 @@ func EnergyBalance(
 		vhand := catchacceler * (time[i] - time[0])
 		vcstroke = crew.vcm(vhand, handlepos)
 		// phidot := vb[i-1] * math.Cos(oarangle[i-1])
-		// vhand := phidot * lin * math.Cos(oarangle[i-1])
+		// vhand := phidot * Lin * math.Cos(oarangle[i-1])
 		ydot[i] = vcstroke
 
-		alfaref := alfa * dragform
+		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = -Fdrag / mtotal
 
@@ -392,16 +387,16 @@ func EnergyBalance(
 		}
 		zdotdot[i] = zdotdot[i] + Fwind/mtotal
 		zdot[i] = zdot[i-1] + dt*zdotdot[i]
-		xdot[i] = zdot[i] - (mcrew/mtotal)*ydot[i]
+		xdot[i] = zdot[i] - (Mcrew/mtotal)*ydot[i]
 
 		Fi := crew.forceprofile(F, handlepos)
-		Fbladei := Fi * lin / lout
+		Fbladei := Fi * Lin / lout
 		// fmt.Println(i, Fbladei, Fi)
 		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fbladei)
 
 		phidot2 := res[0]
-		vhand2 := phidot2 * lin * math.Cos(oarangle[i-1])
-		// fmt.Println(i, phidot2, lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
+		vhand2 := phidot2 * Lin * math.Cos(oarangle[i-1])
+		// fmt.Println(i, phidot2, Lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
 
 		vcstroke2 = crew.vcm(vhand2, handlepos)
 
@@ -410,7 +405,7 @@ func EnergyBalance(
 		vb[i] = xdot[i]
 
 		ydotdot[i] = (ydot[i] - ydot[i-1]) / dt
-		xdotdot[i] = zdotdot[i] - ((mcrew)/(mtotal))*ydotdot[i]
+		xdotdot[i] = zdotdot[i] - ((Mcrew)/(mtotal))*ydotdot[i]
 
 		handlepos += ydot[i] * dt
 		Fhandle[i] = 0
@@ -424,7 +419,7 @@ func EnergyBalance(
 	for handlepos < d && i < len(time) {
 		Fi := crew.forceprofile(F, handlepos)
 		Fhandle[i-1] = Fi
-		Fblade[i-1] = Fi * lin / lout
+		Fblade[i-1] = Fi * Lin / lout
 
 		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fblade[i-1])
 		phidot := res[0]
@@ -436,12 +431,12 @@ func EnergyBalance(
 		Cdrag[i-1] = res[6]
 		attackangle[i-1] = res[7]
 
-		vhand := phidot * lin * math.Cos(oarangle[i-1])
+		vhand := phidot * Lin * math.Cos(oarangle[i-1])
 
 		vcstroke := crew.vcm(vhand, handlepos)
 		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*math.Cos(oarangle[i-1]))
 
-		alfaref := alfa * dragform
+		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
 		zdotdot[i] = (Fprop[i-1] - Fdrag) / mtotal
 		vw := windv - vcstroke - zdot[i-1]
@@ -454,7 +449,7 @@ func EnergyBalance(
 		zdot[i] = zdot[i-1] + dt*zdotdot[i]
 
 		ydot[i] = vcstroke
-		xdot[i] = zdot[i] - ((mcrew)/(mtotal))*ydot[i]
+		xdot[i] = zdot[i] - ((Mcrew)/(mtotal))*ydot[i]
 
 		handlepos = handlepos + vhand*dt
 		vs[i] = zdot[i]
@@ -462,7 +457,7 @@ func EnergyBalance(
 		vb[i] = xdot[i]
 
 		ydotdot[i] = (ydot[i] - ydot[i-1]) / dt
-		xdotdot[i] = zdotdot[i] - (mcrew/mtotal)*ydotdot[i]
+		xdotdot[i] = zdotdot[i] - (Mcrew/mtotal)*ydotdot[i]
 
 		Pf[i-1] = float64(Nrowers) * Fblade[i-1] * xdot[i] * math.Cos(oarangle[i-1])
 
@@ -474,7 +469,7 @@ func EnergyBalance(
 	i = i - 1
 
 	// recovery
-	maxtime := 60. / tempo
+	maxtime := 60. / Tempo
 	trecovery := maxtime - time[i]
 	ratio = time[i] / maxtime
 
@@ -485,7 +480,7 @@ func EnergyBalance(
 		vhand := crew.vhandle(vavgrec, trecovery, time[k]-time[i])
 		vcrecovery[k] = crew.vcm(vhand, handlepos)
 
-		alfaref := alfa * dragform
+		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[k-1], alfaref, 0, 0)
 		zdotdot[k] = -Fdrag / mtotal
 
@@ -499,14 +494,14 @@ func EnergyBalance(
 
 		zdot[k] = zdot[k-1] + dt*zdotdot[k]
 		ydot[k] = vcrecovery[k]
-		xdot[k] = zdot[k] - ydot[k]*mcrew/mtotal
+		xdot[k] = zdot[k] - ydot[k]*Mcrew/mtotal
 
 		vs[k] = zdot[k]
 		vc[k] = xdot[k] + ydot[k]
 		vb[k] = xdot[k]
 
 		ydotdot[k] = (ydot[k] - ydot[k-1]) / dt
-		xdotdot[k] = zdotdot[k] - ydotdot[k]*mcrew/mtotal
+		xdotdot[k] = zdotdot[k] - ydotdot[k]*Mcrew/mtotal
 
 		handlepos = d + d*crew.dxhandle(vavgrec, trecovery, time[k]-time[i])
 		oarangle[k] = rigging.oarangle(handlepos)
@@ -529,11 +524,11 @@ func EnergyBalance(
 	var Pwmin float64
 	Pw := make([]float64, aantal)
 	Pmb := make([]float64, aantal)
-	Pmc := make([]float64, aantal)
+	PMc := make([]float64, aantal)
 	Phandle := make([]float64, aantal)
 	Pleg := make([]float64, aantal)
 
-	alfaref := alfa * dragform
+	alfaref := alfa * DragForm
 
 	// blade positions
 	for i := 0; i < aantal; i++ {
@@ -550,19 +545,19 @@ func EnergyBalance(
 	Pwmin = DragEq(mtotal, xdotmean, alfaref, 0, 0) * xdotmean
 
 	for i := 0; i < aantal; i++ {
-		Pq[i] = mcrew * (xdotdot[i] + ydotdot[i]) * ydot[i]
+		Pq[i] = Mcrew * (xdotdot[i] + ydotdot[i]) * ydot[i]
 		Pw[i] = DragEq(mtotal, xdot[i], alfaref, 0, 0) * xdot[i]
 		Pmb[i] = mb * xdot[i] * xdotdot[i]
-		Pmc[i] = mcrew * (xdot[i] + ydot[i]) * (xdotdot[i] + ydotdot[i])
+		PMc[i] = Mcrew * (xdot[i] + ydot[i]) * (xdotdot[i] + ydotdot[i])
 		Phandle[i] = float64(Nrowers) * Fhandle[i] * xdot[i] * math.Cos(oarangle[i])
-		Pleg[i] = float64(Nrowers) * mc * (xdotdot[i] + ydotdot[i]) * ydot[i]
+		Pleg[i] = float64(Nrowers) * Mc * (xdotdot[i] + ydotdot[i]) * ydot[i]
 		Pqrower[i] = math.Abs(Pq[i])
 		Pdiss[i] = Pqrower[i] - Pq[i]
 
 	}
 
 	// Ekinb = cumsum(Pmb, dt)
-	// Ekinc = cumsum(Pmc, dt)
+	// Ekinc = cumsum(PMc, dt)
 	// Ef = cumsum(Pf, dt)
 	// Eq = cumsum(Pq, dt)
 	Eblade := cumsum(Pbladeslip, dt)
@@ -573,10 +568,10 @@ func EnergyBalance(
 	// Eleg = cumsum(Pleg, dt)
 	// Ehandle = cumsum(Phandle, dt)
 
-	Ewmin = Pwmin * 60. / tempo
+	Ewmin = Pwmin * 60. / Tempo
 
-	Ekin0 := 0.5 * mtotal * math.Pow(zdot[0], 2)
-	Ekinend := 0.5 * mtotal * math.Pow(zdot[aantal-1], 2)
+	Ekin0 := 0.5 * mtotal * zdot[0] * zdot[0]
+	Ekinend := 0.5 * mtotal * zdot[aantal-1] * zdot[aantal-1]
 	Eloss := Ekin0 - Ekinend
 
 	// calculate vavg, vmin, vmax, energy, efficiency, power
@@ -590,7 +585,7 @@ func EnergyBalance(
 	efficiency -= Eloss
 	efficiency = efficiency / energy
 	energy = energy / float64(Nrowers)
-	power = energy * tempo / 60.
+	power = energy * Tempo / 60.
 	vmin, vmax := sliceminmax(xdot)
 
 	// calculate check
@@ -602,7 +597,7 @@ func EnergyBalance(
 	CNCheck := 0.0 // np.std(decel[indices])**2
 
 	// RIM parameters
-	RIMCheck := vmax - vmin
+	RIMcheck := vmax - vmin
 	RIME := 0.0 // max(cumsum(xdot-vmin)*dt)
 	_, maxEw := sliceminmax(Ew)
 	dragEff := Ewmin / maxEw
@@ -615,8 +610,8 @@ func EnergyBalance(
 	       t3 = t4
 	*/
 	// amin, _ := Sliceminmax(xdotdot[2:])
-	RIMCatchE := 0.0 // -(amin/t4)
-	RIMCatchD := 0.0 // t4+max(time)-t3
+	RIMcatchE := 0.0 // -(amin/t4)
+	RIMcatchD := 0.0 // t4+max(time)-t3
 
 	catchacceler = ydotdot[aantal-1] - xdotdot[aantal-1]
 	if catchacceler < 5.0 {
@@ -635,11 +630,257 @@ func EnergyBalance(
 		vmin,         // 8
 		CNCheck,      // 9
 		RIME,         // 10
-		RIMCheck,     // 11
-		RIMCatchE,    // 12
-		RIMCatchD,    // 13
+		RIMcheck,     // 11
+		RIMcatchE,    // 12
+		RIMcatchD,    // 13
 		catchacceler, // 14
 		dragEff,      // 15
 	}
 
+}
+
+// Stroke calculates a few (aantal) strokes and returns parameters averaged over those strokes
+func Stroke(
+	F float64,
+	crew *Crew,
+	rigging *Rig,
+	v0 float64,
+	dt float64,
+	aantal int,
+	catchacceler float64,
+	dowind bool,
+	windv float64,
+) []float64 {
+
+	var dv, vavg, vend, vmin, vmax, ratio, energy, power, eff float64
+
+	var CNCheck, RIME, RIMcheck, RIMcatchE, RIMcatchD, DragEff float64
+	tcatchacceler := catchacceler
+
+	for i := 0; i < aantal; i++ {
+		var res = EnergyBalance(F, crew, rigging, v0, dt, tcatchacceler, windv, dowind)
+
+		dv = dv + res[0]
+		vend = vend + res[1]
+		vavg = vavg + res[2]
+		ratio = ratio + res[3]
+		energy = energy + res[4]
+		power = power + res[5]
+		vmin = vmin + res[8]
+		vmax = vmax + res[7]
+		eff = eff + res[6]
+
+		v0 = res[1]
+
+		CNCheck = CNCheck + res[9]
+		RIME = RIME + res[10]
+		RIMcheck = RIMcheck + res[11]
+		RIMcatchE = RIMcatchE + res[12]
+		RIMcatchD = RIMcatchD + res[13]
+		catchacceler = catchacceler + res[14]
+		DragEff = DragEff + res[15]
+		tcatchacceler = res[14]
+	}
+
+	faantal := float64(aantal)
+
+	dv = dv / faantal
+	vend = vend / faantal
+	vavg = vavg / faantal
+	vmin = vmin / faantal
+	vmax = vmax / faantal
+	ratio = ratio / faantal
+	energy = energy / faantal
+	power = power / faantal
+	eff = eff / faantal
+	CNCheck = CNCheck / faantal
+	RIME = RIME / faantal
+	RIMcheck = RIMcheck / faantal
+	RIMcatchE = RIMcatchE / faantal
+	RIMcatchD = RIMcatchD / faantal
+	DragEff = DragEff / faantal
+	catchacceler = catchacceler / faantal
+
+	return []float64{
+		dv,           // 0
+		vend,         // 1
+		vavg,         // 2
+		ratio,        // 3
+		energy,       // 4
+		power,        // 5
+		eff,          // 6
+		vmax,         // 7
+		vmin,         // 8
+		CNCheck,      // 9
+		RIME,         // 10
+		RIMcheck,     // 11
+		RIMcatchE,    // 12
+		RIMcatchD,    // 13
+		catchacceler, // 14
+		DragEff,      // 15
+	}
+}
+
+// ConstantVeloFast calculates force and power to achieve certain boat speed
+func ConstantVeloFast(
+	velo float64,
+	crew *Crew,
+	rigging *Rig,
+	timestep float64,
+	aantal int,
+	aantal2 int,
+	Fmin float64,
+	Fmax float64,
+	catchacceler float64,
+	windv float64,
+	dowind bool,
+) []float64 {
+
+	F := LinSpace(Fmin, Fmax, aantal)
+	velocity := make([]float64, aantal)
+
+	ca := catchacceler
+	dv := 1.
+	vend := 4.0
+
+	for i, ff := range F {
+		for dv/vend > 0.001 {
+			res := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			dv = res[0]
+			vend = res[1]
+			ca = res[14]
+		}
+		res := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		velocity[i] = res[2]
+	}
+
+	fres, _ := srinterpol3(F, velocity, velo)
+	// fmt.Println(fres, velocity, F)
+	dv = 1.0
+
+	for dv/vend > 0.001 {
+		res := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		dv = res[0]
+		vend = res[1]
+		ca = res[14]
+	}
+
+	res := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	vavg := res[2]
+	ratio := res[3]
+	pw := res[5]
+	eff := res[6]
+
+	return []float64{
+		fres,  // 0
+		vavg,  // 1
+		ratio, // 2
+		pw,    // 3
+		eff,   // 4
+	}
+
+}
+
+// ConstantWattFast returns force, average speed given input power in Watt
+func ConstantWattFast(
+	watt float64,
+	crew *Crew,
+	rigging *Rig,
+	timestep float64,
+	aantal int,
+	aantal2 int,
+	Fmin float64,
+	Fmax float64,
+	catchacceler float64,
+	windv float64,
+	dowind bool,
+	maxIterationsAllowed int,
+) []float64 {
+
+	F := LinSpace(Fmin, Fmax, aantal)
+	power := make([]float64, aantal)
+
+	ca := catchacceler
+	dv := 1.
+	vend := 4.0
+
+	for i, ff := range F {
+		for dv/vend > 0.001 {
+			res := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			dv = res[0]
+			vend = res[1]
+			ca = res[14]
+		}
+		res := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		power[i] = res[5]
+	}
+
+	fres, _ := srinterpol3(F, power, watt)
+
+	dv = 1.0
+
+	for count := 0; dv/vend > 0.001 && count <= maxIterationsAllowed; count++ {
+		res := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		dv = res[0]
+		vend = res[1]
+		ca = res[14]
+	}
+
+	res := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	vavg := res[2]
+	ratio := res[3]
+	pw := res[5]
+	eff := res[6]
+
+	return []float64{
+		fres,  // 0
+		vavg,  // 1
+		ratio, // 2
+		pw,    // 3
+		eff,   // 4
+	}
+}
+
+func tailwind(
+	bearing float64,
+	vwind float64,
+	winddirection float64,
+	vstream float64,
+) float64 {
+	b := bearing * math.Pi / 180.
+	w := winddirection * math.Pi / 180.
+
+	vtail := -vwind*math.Cos(w-b) - vstream
+
+	return vtail
+}
+
+// PhysGetPower Gets power and no wind pace
+func PhysGetPower(
+	velo float64,
+	rower *Crew,
+	rigging *Rig,
+	bearing float64,
+	vwind float64,
+	winddirection float64,
+	vstream float64,
+) ([]float64, error) {
+
+	tw := tailwind(bearing, vwind, winddirection, vstream)
+	velowater := velo - vstream
+	res := ConstantVeloFast(velowater, rower, rigging, 0.03, 5, 5, 50, 600, 5, tw, true)
+
+	force := res[0]
+	power := res[3]
+	ratio := res[2]
+
+	res2 := ConstantWattFast(power, rower, rigging, 0.03, 5, 5, 50, 600, 5, 0, true, 15)
+	pnowind := 500. / res2[1]
+
+	return []float64{
+		power,
+		ratio,
+		force,
+		pnowind,
+		math.NaN()}, nil
 }

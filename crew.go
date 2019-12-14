@@ -1,25 +1,26 @@
 package gorow
 
 import (
+	"encoding/json"
 	"math"
 )
 
 // technique functions
-func vcm(vhandle, strokelength, xhandle float64) float64 {
+func vcm(vhandle, Strokelength, xhandle float64) float64 {
 	vc := vhandle
 	if xhandle >= 0 {
-		xr := xhandle / strokelength
+		xr := xhandle / Strokelength
 		vc = 0.85*vhandle - 0.75*vhandle*math.Pow(xr, 2)
 	}
 	return vc
 }
 
-func vcma(vhandle []float64, strokelength float64, xhandle []float64) []float64 {
+func vcma(vhandle []float64, Strokelength float64, xhandle []float64) []float64 {
 	var vc = make([]float64, len(vhandle))
 
 	for i := range vhandle {
 		if vhandle[i] > 0 {
-			vc[i] = vcm(vhandle[i], strokelength, xhandle[i])
+			vc[i] = vcm(vhandle[i], Strokelength, xhandle[i])
 		}
 	}
 
@@ -27,8 +28,8 @@ func vcma(vhandle []float64, strokelength float64, xhandle []float64) []float64 
 
 }
 
-func vha(vcm, strokelength, xhandle float64) float64 {
-	var xr = xhandle / strokelength
+func vha(vcm, Strokelength, xhandle float64) float64 {
+	var xr = xhandle / Strokelength
 	var vh = vcm / (0.85 - 0.75*math.Pow(xr, 2))
 
 	return vh
@@ -47,21 +48,21 @@ type RecoveryProfile interface {
 
 // StrongMiddle stroke profile with strong middle
 type StrongMiddle struct {
-	frac float64
+	Frac float64
 }
 
 func (s StrongMiddle) forceprofile(favg, x float64) float64 {
-	var f = (s.frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + (1.-s.frac)*favg
+	var f = (s.Frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + (1.-s.Frac)*favg
 	return f
 }
 
 // StrongMiddle2 stroke profile, alternative with strong middle
 type StrongMiddle2 struct {
-	frac float64
+	Frac float64
 }
 
 func (s StrongMiddle2) forceprofile(favg, x float64) float64 {
-	var f = (s.frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + 2*(1.-s.frac)*favg*(1-x)
+	var f = (s.Frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + 2*(1.-s.Frac)*favg*(1-x)
 	return f
 }
 
@@ -75,18 +76,18 @@ func (s Flat) forceprofile(favg, x float64) float64 {
 
 // Trapezium stroke profile
 type Trapezium struct {
-	h1, h2, x1, x2 float64
+	H1, H2, X1, X2 float64
 }
 
 func (s Trapezium) forceprofile(favg, x float64) float64 {
-	ratio := s.h1*0.5*s.x2 + s.h2*(0.5-0.5*s.x1)
+	ratio := s.H1*0.5*s.X2 + s.H2*(0.5-0.5*s.X1)
 	f := 0.0
-	if x < s.x1 {
-		f = favg * s.h1 * x / s.x1
-	} else if x > s.x2 {
-		f = favg * s.h2 * (1. - x) / (1. - s.x2)
+	if x < s.X1 {
+		f = favg * s.H1 * x / s.X1
+	} else if x > s.X2 {
+		f = favg * s.H2 * (1. - x) / (1. - s.X2)
 	} else {
-		f = favg * (s.h1 + (s.h2-s.h1)*(x-s.x1)/(s.x2-s.x1))
+		f = favg * (s.H1 + (s.H2-s.H1)*(x-s.X1)/(s.X2-s.X1))
 	}
 
 	f = f / ratio
@@ -95,23 +96,23 @@ func (s Trapezium) forceprofile(favg, x float64) float64 {
 
 // Trapezium2 stroke profile
 type Trapezium2 struct {
-	h0, h1, h2, x1, x2 float64
+	H0, H1, H2, X1, X2 float64
 }
 
 func (s Trapezium2) forceprofile(favg, x float64) float64 {
-	ratio := s.h1*0.5*s.x2 + s.h2*(0.5-0.5*s.x1) + s.h0
-	ratio2 := s.h1*0.5*s.x2 + s.h2*(0.5-0.5*s.x1)
-	frac := ratio2 / ratio
+	ratio := s.H1*0.5*s.X2 + s.H2*(0.5-0.5*s.X1) + s.H0
+	ratio2 := s.H1*0.5*s.X2 + s.H2*(0.5-0.5*s.X1)
+	Frac := ratio2 / ratio
 	f := 0.0
-	if x < s.x1 {
-		f = favg * s.h1 * x / s.x1
-	} else if x > s.x2 {
-		f = favg * s.h2 * (1. - x) / (1. - s.x2)
+	if x < s.X1 {
+		f = favg * s.H1 * x / s.X1
+	} else if x > s.X2 {
+		f = favg * s.H2 * (1. - x) / (1. - s.X2)
 	} else {
-		f = (s.h1 + (s.h2-s.h1)*(x-s.x1)/(s.x2-s.x1)) * favg
+		f = (s.H1 + (s.H2-s.H1)*(x-s.X1)/(s.X2-s.X1)) * favg
 	}
 
-	f = frac*f + (1-frac)*favg*s.h0
+	f = Frac*f + (1-Frac)*favg*s.H0
 	f = f / ratio
 
 	return f
@@ -121,21 +122,21 @@ func (s Trapezium2) forceprofile(favg, x float64) float64 {
 
 // StrongBegin stroke profile
 type StrongBegin struct {
-	frac float64
+	Frac float64
 }
 
 func (s StrongBegin) forceprofile(favg, x float64) float64 {
-	f := (2*s.frac*(1.0-x) + (1. - s.frac)) * favg
+	f := (2*s.Frac*(1.0-x) + (1. - s.Frac)) * favg
 	return f
 }
 
 // StrongEnd stroke profile
 type StrongEnd struct {
-	frac float64
+	Frac float64
 }
 
 func (s StrongEnd) forceprofile(favg, x float64) float64 {
-	f := (2*s.frac*x + (1. - s.frac)) * favg
+	f := (2*s.Frac*x + (1. - s.Frac)) * favg
 	return f
 }
 
@@ -168,45 +169,45 @@ func (r SinusRecovery) dxhandle(vavg, trecovery, time float64) float64 {
 
 // SinusRecovery2 recovery profile
 type SinusRecovery2 struct {
-	p1           float64
-	strokelength float64
+	P1           float64
+	Strokelength float64
 }
 
 func (r SinusRecovery2) vhandle(vavg, trecovery, time float64) float64 {
-	w1 := math.Pi / r.p1
+	w1 := math.Pi / r.P1
 	w := w1 / trecovery
-	vhandmax := w * r.strokelength / (1 - math.Cos(w*trecovery))
+	vhandmax := w * r.Strokelength / (1 - math.Cos(w*trecovery))
 	vhand := -vhandmax * math.Sin(w*time)
 	return vhand
 }
 
 func (r SinusRecovery2) dxhandle(vavg, trecovery, time float64) float64 {
-	w1 := math.Pi / r.p1
+	w1 := math.Pi / r.P1
 	w := w1 / trecovery
-	vhandmax := w * r.strokelength / (1 - math.Cos(w*trecovery))
-	dx := vhandmax * (math.Cos(w*time) - 1) / (r.strokelength)
+	vhandmax := w * r.Strokelength / (1 - math.Cos(w*trecovery))
+	dx := vhandmax * (math.Cos(w*time) - 1) / (r.Strokelength)
 	return dx
 }
 
 // CosinusRecovery recovery profile
 type CosinusRecovery struct {
-	p1           float64
-	strokelength float64
+	P1           float64
+	Strokelength float64
 }
 
 func (r CosinusRecovery) vhandle(vavg, trecovery, time float64) float64 {
-	w1 := math.Pi / (2 * r.p1)
+	w1 := math.Pi / (2 * r.P1)
 	w := w1 / trecovery
-	vhandmax := w * r.strokelength / (math.Sin(w * trecovery))
+	vhandmax := w * r.Strokelength / (math.Sin(w * trecovery))
 	vhand := -vhandmax * math.Cos(w*time)
 	return vhand
 }
 
 func (r CosinusRecovery) dxhandle(vavg, trecovery, time float64) float64 {
-	w1 := math.Pi / (2 * r.p1)
+	w1 := math.Pi / (2 * r.P1)
 	w := w1 / trecovery
-	vhandmax := w * r.strokelength / (math.Sin(w * trecovery))
-	dx := vhandmax * math.Sin(w*time) / (r.strokelength)
+	vhandmax := w * r.Strokelength / (math.Sin(w * trecovery))
+	dx := vhandmax * math.Sin(w*time) / (r.Strokelength)
 	return dx
 }
 
@@ -216,28 +217,28 @@ func (r CosinusRecovery) dxhandle(vavg, trecovery, time float64) float64 {
 
 // TriangleRecovery recovery profile
 type TriangleRecovery struct {
-	x1 float64
+	X1 float64
 }
 
 func (r TriangleRecovery) vhandle(vavg, trecovery, time float64) float64 {
 	trel := time / trecovery
-	if trel < r.x1 {
-		vhand := -2 * vavg * trel / r.x1
+	if trel < r.X1 {
+		vhand := -2 * vavg * trel / r.X1
 		return vhand
 	}
-	vhand := -2 * vavg * (1. - trel) / (1 - r.x1)
+	vhand := -2 * vavg * (1. - trel) / (1 - r.X1)
 	return vhand
 }
 
 func (r TriangleRecovery) dxhandle(vavg, trecovery, time float64) float64 {
 	trel := time / trecovery
-	if trel < r.x1 {
-		dx := math.Pow(trel, 2) / r.x1
+	if trel < r.X1 {
+		dx := math.Pow(trel, 2) / r.X1
 		return dx
 	}
-	dx := r.x1
-	dx -= (math.Pow(1-trel, 2)) / (1 - r.x1)
-	dx += 1 - r.x1
+	dx := r.X1
+	dx -= (math.Pow(1-trel, 2)) / (1 - r.X1)
+	dx += 1 - r.X1
 	return -dx
 }
 
@@ -245,55 +246,70 @@ func (r TriangleRecovery) dxhandle(vavg, trecovery, time float64) float64 {
 
 // Crew class with rower quantities
 type Crew struct {
-	mc           float64
-	strokelength float64
-	tempo        float64
-	frac         float64
+	Mc           float64
+	Strokelength float64
+	Tempo        float64
+	Frac         float64
 	// recprofile = sinusrecovery()
-	recoveryprofile RecoveryProfile
-	// strokeprofile = trapezium(x1=0.15,x2=0.5,h2=0.9)
-	strokeprofile ForceProfile
+	Recoveryprofile RecoveryProfile
+	// Strokeprofile = trapezium(X1=0.15,X2=0.5,H2=0.9)
+	Strokeprofile ForceProfile
 	// technique = technique_meas()
-	maxpower float64
-	maxforce float64
+	Maxpower float64
+	Maxforce float64
 }
 
 func (c *Crew) vcm(vhandle, xhandle float64) float64 {
-	return vcm(vhandle, c.strokelength, xhandle)
+	return vcm(vhandle, c.Strokelength, xhandle)
 }
 
 func (c *Crew) vcma(vhandle, xhandle []float64) []float64 {
-	return vcma(vhandle, c.strokelength, xhandle)
+	return vcma(vhandle, c.Strokelength, xhandle)
 }
 
 func (c *Crew) vha(vcm, xhandle float64) float64 {
-	return vha(vcm, c.strokelength, xhandle)
+	return vha(vcm, c.Strokelength, xhandle)
 }
 
 func (c *Crew) vhandle(vavg, trecovery, time float64) float64 {
-	return c.recoveryprofile.vhandle(vavg, trecovery, time)
+	return c.Recoveryprofile.vhandle(vavg, trecovery, time)
 }
 
 func (c *Crew) dxhandle(vavg, trecovery, time float64) float64 {
-	return c.recoveryprofile.dxhandle(vavg, trecovery, time)
+	return c.Recoveryprofile.dxhandle(vavg, trecovery, time)
 }
 
 func (c *Crew) forceprofile(F, x float64) float64 {
-	return c.strokeprofile.forceprofile(F, x/c.strokelength)
+	return c.Strokeprofile.forceprofile(F, x/c.Strokelength)
 }
 
 // NewCrew inits Crew instance
-func NewCrew(mc float64, strokelength float64, tempo float64, frac float64,
-	recoveryprofile RecoveryProfile, strokeprofile ForceProfile,
-	maxpower float64, maxforce float64) *Crew {
+func NewCrew(Mc float64, Strokelength float64, Tempo float64, Frac float64,
+	Recoveryprofile RecoveryProfile, Strokeprofile ForceProfile,
+	Maxpower float64, Maxforce float64) *Crew {
 	return &Crew{
-		mc:              mc,
-		strokelength:    strokelength,
-		recoveryprofile: recoveryprofile,
-		strokeprofile:   strokeprofile,
-		tempo:           tempo,
-		frac:            frac,
-		maxpower:        maxpower,
-		maxforce:        maxforce,
+		Mc:              Mc,
+		Strokelength:    Strokelength,
+		Recoveryprofile: Recoveryprofile,
+		Strokeprofile:   Strokeprofile,
+		Tempo:           Tempo,
+		Frac:            Frac,
+		Maxpower:        Maxpower,
+		Maxforce:        Maxforce,
 	}
+}
+
+// ToJSON exports crew to JSON
+func (c *Crew) ToJSON() (string, error) {
+	b, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// FromJSON sets crew from JSON
+func (c *Crew) FromJSON(s string) error {
+	err := json.Unmarshal([]byte(s), c)
+	return err
 }

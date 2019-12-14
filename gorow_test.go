@@ -1,12 +1,14 @@
 package gorow
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math"
 	"testing"
 )
 
 const tolerance = 0.000001
-const relativetolerance = 0.01
+const relativetolerance = 0.05
 
 func GetTolerance(got float64, want float64) bool {
 	if want == 0.0 {
@@ -16,8 +18,85 @@ func GetTolerance(got float64, want float64) bool {
 		return false
 
 	}
+
+	if math.IsNaN(want) && math.IsNaN(got) {
+		return true
+	}
+
 	var diff = math.Abs((got - want) / (want))
 	return diff < relativetolerance
+}
+
+func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
+	if len(got) != len(want) {
+		t.Errorf("Function %s did not return the expected slice length. Got %d, wanted %d",
+			name, len(got), len(want))
+		return
+	}
+
+	for i := range want {
+		if !GetTolerance(got[i], want[i]) {
+			t.Errorf("Function %s, element %d, expected %f, got %f",
+				name, i, want[i], got[i])
+		}
+	}
+	return
+}
+
+func TestGetField(t *testing.T) {
+	stroke := StrokeRecord{spm: 22}
+	fmt.Println(stroke.spm)
+	got, _ := stroke.GetField("spm")
+	want := 22.0
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("GetField gave incorrect result. Got %f, wanted %f\n",
+			got, want)
+	}
+}
+
+func TestCSVReader(t *testing.T) {
+	strokes := ReadCSV("testdata.csv")
+	want := 191
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+}
+
+func TestCSVReaderWriter(t *testing.T) {
+	strokes := ReadCSV("testdata.csv")
+	want := 191
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+	ok, err := WriteCSV(strokes, "out2.csv", true)
+	if !ok {
+		t.Errorf("CSVWriter: %v", err)
+	}
+}
+
+func TestOTWSetPower(t *testing.T) {
+	strokes := ReadCSV("otw.csv")
+	strokes = strokes[100:120]
+	AddBearing(strokes)
+	fmt.Printf("Before: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
+	OTWSetPower(strokes, "maherio", "http://localhost:8000/rowers/record-progress/testprogress/")
+	fmt.Printf("After: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
+}
+
+func TestInterPol3(t *testing.T) {
+	x := []float64{1, 2, 4, 5, 6}
+	y := []float64{1, 2, 4, 5, 6}
+
+	want := 3.0
+	got, _ := srinterpol3(x, y, 3)
+
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Interpol3 equation gave incorrect result. Got %f, wanted %f\n",
+			got, want)
+	}
+
 }
 
 func TestSlices(t *testing.T) {
@@ -65,7 +144,7 @@ func TestDragEq(t *testing.T) {
 			got, want)
 	}
 
-	got = DragEq(100, 4.5, 3.5, 1, 1)
+	got = DragEq(100, 4.5, 3.5, 0, 1)
 	want = 70.875
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Drag equation gave incorrect result. Got %f, wanted %f\n",
@@ -97,9 +176,37 @@ func TestDRecovery(t *testing.T) {
 	}
 }
 
+func TestCrewExportImport(t *testing.T) {
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
+	s, err := c.ToJSON()
+	if err != nil {
+		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
+	}
+
+	want := 156
+	got := len(s)
+
+	if want != got {
+		t.Errorf("Crew ToJSON error. String length got %d, want %d", got, want)
+	}
+
+	var c2 Crew
+
+	c2.FromJSON(s)
+
+	wantf := c.Strokelength
+	gotf := c2.Strokelength
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("Rigging FromJSON equation gave incorrect result. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+
+}
+
 func TestCrew(t *testing.T) {
-	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{x1: 0.15, x2: 0.5, h1: 1.0, h2: 0.9}, 1000., 1000.)
-	var got = c.strokelength
+	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
+	var got = c.Strokelength
 	var want = 1.4
 	if math.Abs(got-want) > tolerance {
 		t.Errorf("Crew stroke length incorrect. Got %f, wanted %f\n", got, want)
@@ -172,6 +279,63 @@ func TestRigZero(t *testing.T) {
 	}
 }
 
+func TestRigExportImport(t *testing.T) {
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	s, err := rg.ToJSON()
+	if err != nil {
+		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
+	}
+
+	want := 130
+	got := len(s)
+
+	if want != got {
+		t.Errorf("rigging ToJSON error. String length got %d, want %d", got, want)
+	}
+
+	var rg2 Rig
+
+	rg2.FromJSON(s)
+
+	wantf := rg.buitenhand()
+	gotf := rg2.buitenhand()
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("Rigging FromJSON equation gave incorrect result. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+}
+
+func TestRigExportImportFiles(t *testing.T) {
+	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	s, err := rg.ToJSON()
+	if err != nil {
+		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
+	}
+
+	err = ioutil.WriteFile("/tmp/dat1", []byte(s), 0644)
+
+	var rg2 Rig
+
+	content, err := ioutil.ReadFile("/tmp/dat1")
+	if err != nil {
+		t.Errorf("Rigging reading from file yielded an error")
+	}
+
+	err = rg2.FromJSON(string(content))
+	if err != nil {
+		t.Errorf("Rigging fromJSON an error")
+	}
+
+	wantf := rg.buitenhand()
+	gotf := rg2.buitenhand()
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("Rigging FromJSON equation gave incorrect result. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+}
+
 func TestRig(t *testing.T) {
 	var rg = NewRig(0.89, 14., 2.89, 1.61, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
@@ -241,8 +405,8 @@ func TestBasics(t *testing.T) {
 	var mb = 14.0
 
 	var v = 3.9
-	var lout = rg.lscull - rg.lin
-	var got = vhandle(v, rg.lin, lout, mc, mb)
+	var lout = rg.Lscull - rg.Lin
+	var got = vhandle(v, rg.Lin, lout, mc, mb)
 	var want = 1.373323
 
 	if math.Abs(got-want) > tolerance {
@@ -334,12 +498,7 @@ func TestBladeForce(t *testing.T) {
 
 	got = BladeForce(-0.7, rg, 4.5, 100)
 
-	for i := 0; i < len(want); i++ {
-		if !GetTolerance(got[i], want[i]) {
-			t.Errorf("Function BladeForce 2, element %d, expected %f, got %f",
-				i, want[i], got[i])
-		}
-	}
+	ToleranceTest(t, got, want, "BladeForce")
 
 }
 
@@ -367,20 +526,99 @@ func TestEnergyBalance(t *testing.T) {
 	c := NewCrew(
 		80., 1.4, 30.0, 0.5,
 		SinusRecovery{},
-		Trapezium{x1: 0.15, x2: 0.5, h2: 0.9, h1: 1.0}, 1000., 1000.)
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
 
-	if len(got) != len(want) {
-		t.Errorf("Function EnergyBalance did not return the expected slice length. Got %d, wanted %d",
-			len(got), len(want))
+	ToleranceTest(t, got, want, "EnergyBalance")
+
+}
+
+func TestStroke(t *testing.T) {
+	want := []float64{
+		-0.0008034566368703589,
+		3.405032807198155,
+		3.805137532355478,
+		0.49328358208955214,
+		553.541979346718,
+		276.770989673359,
+		0.7211424362408791,
+		5.012794324778716,
+		2.5904571157190004,
+		0.0, // 5.507898476518529,
+		0.0, // 2.4779480499384134,
+		2.422337209059717,
+		0.0, // 92.55933370813963,
+		0.0, // 0.5402985074626863,
+		11.370089516607615,
+		0.8768551568021985,
 	}
 
-	for i := range want {
-		if !GetTolerance(got[i], want[i]) {
-			t.Errorf("Function EnergyBalance, element %d, expected %f, got %f",
-				i, want[i], got[i])
-		}
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	got := Stroke(350, c, rg, 3.42, 0.03, 20, 5.0, true, 0.0)
+
+	ToleranceTest(t, got, want, "Stroke")
+
+}
+
+func TestConstantVelo(t *testing.T) {
+	want := []float64{
+		249.34555283522275,
+		3.4481771832103107,
+		0.5462686567164179,
+		199.53058042827024,
+		0.7239294989576714,
+	}
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	got := ConstantVeloFast(3.42, c, rg, 0.03, 5, 5, 100, 400, 5, 0.0, true)
+
+	ToleranceTest(t, got, want, "ConstantVeloFast")
+}
+
+func TestConstantWatt(t *testing.T) {
+	want := []float64{
+		250,
+		3.44,
+		0.54,
+		199,
+		0.723,
 	}
 
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	got := ConstantWattFast(200, c, rg, 0.03, 5, 5, 50, 1000, 5, 0, true, 15)
+	ToleranceTest(t, got, want, "ConstantWattFast")
+
+}
+
+func TestPhysGetPower(t *testing.T) {
+	want := []float64{
+		237.,
+		0.522,
+		323.,
+		139.,
+		math.NaN(),
+	}
+
+	c := NewCrew(
+		80., 1.4, 30.0, 0.5,
+		SinusRecovery{},
+		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
+	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+
+	got, _ := PhysGetPower(3.5, c, rg, 90., 2.1, 160., 0)
+	ToleranceTest(t, got, want, "ConstantWattFast")
 }
