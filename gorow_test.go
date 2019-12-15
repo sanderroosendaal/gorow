@@ -82,7 +82,6 @@ func TestOTWSetPower(t *testing.T) {
 	var rg = NewRig(0.9, 14, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 0.98)
 	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
 
-	fmt.Println("Done")
 	strokes := ReadCSV("otw.csv")
 	strokes = strokes[100:120]
 	AddBearing(strokes)
@@ -448,7 +447,7 @@ func TestLinSpace(t *testing.T) {
 		1.81632653, 1.83673469, 1.85714286, 1.87755102, 1.89795918,
 		1.91836735, 1.93877551, 1.95918367, 1.97959184, 2.}
 
-	got := LinSpace(1, 2, 50)
+	got, _ := LinSpace(1, 2, 50)
 
 	if len(got) != len(want) {
 		t.Errorf("Function LinSpace did not return the expected slice. Got %d, wanted %d",
@@ -459,6 +458,15 @@ func TestLinSpace(t *testing.T) {
 		if math.Abs(got[i]-want[i]) > tolerance {
 			t.Errorf("Function Linspace %d, got %f, wanted %f", i, got[i], want[i])
 		}
+	}
+
+	// check error
+	got, err := LinSpace(1, 2, 0)
+	if err == nil {
+		t.Error("Linspace should give error when called with length of zero")
+	}
+	if got != nil {
+		t.Error("Linspace should give error when called with length of zero")
 	}
 
 }
@@ -479,7 +487,7 @@ func TestBladeForce(t *testing.T) {
 		-0.93, 822.e-4, 0.46,
 		1, 1.0)
 
-	var got = BladeForce(-0.6, rg, 3.5, 100)
+	got, _ := BladeForce(-0.6, rg, 3.5, 100)
 
 	if len(got) != len(want) {
 		t.Errorf("Function BladeForce did not return the expected slice. Got %d, wanted %d",
@@ -502,7 +510,7 @@ func TestBladeForce(t *testing.T) {
 		0.010368533533736905,
 		-0.07206421091268539}
 
-	got = BladeForce(-0.7, rg, 4.5, 100)
+	got, _ = BladeForce(-0.7, rg, 4.5, 100)
 
 	ToleranceTest(t, got, want, "BladeForce")
 
@@ -534,7 +542,7 @@ func TestEnergyBalance(t *testing.T) {
 		SinusRecovery{},
 		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
-	got := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
+	got, _ := EnergyBalance(350, c, rg, 3.28, 0.03, 5.0, 0.0, true)
 
 	ToleranceTest(t, got, want, "EnergyBalance")
 
@@ -565,7 +573,7 @@ func TestStroke(t *testing.T) {
 		SinusRecovery{},
 		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
-	got := Stroke(350, c, rg, 3.42, 0.03, 20, 5.0, true, 0.0)
+	got, _ := Stroke(350, c, rg, 3.42, 0.03, 20, 5.0, true, 0.0)
 
 	ToleranceTest(t, got, want, "Stroke")
 
@@ -585,7 +593,7 @@ func TestConstantVelo(t *testing.T) {
 		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
-	got := ConstantVeloFast(3.42, c, rg, 0.03, 5, 5, 100, 400, 5, 0.0, true)
+	got, _ := ConstantVeloFast(3.42, c, rg, 0.03, 5, 5, 100, 400, 5, 0.0, true)
 
 	ToleranceTest(t, got, want, "ConstantVeloFast")
 }
@@ -605,7 +613,7 @@ func TestConstantWatt(t *testing.T) {
 		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
 
-	got := ConstantWattFast(200, c, rg, 0.03, 5, 5, 50, 1000, 5, 0, true, 15)
+	got, _ := ConstantWattFast(200, c, rg, 0.03, 5, 5, 50, 1000, 5, 0, true, 15)
 	ToleranceTest(t, got, want, "ConstantWattFast")
 
 }
