@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"path/filepath"
 	"testing"
 )
 
@@ -331,11 +332,14 @@ func TestRigExportImportFiles(t *testing.T) {
 		t.Errorf("rigging ToJSON yielded an error, %v", err.Error())
 	}
 
-	err = ioutil.WriteFile("/tmp/dat1", []byte(s), 0644)
+	temppath := filepath.FromSlash("/tmp/dat1")
+	fmt.Printf("Temporary file location: %v\n", temppath)
+
+	err = ioutil.WriteFile(temppath, []byte(s), 0644)
 
 	var rg2 Rig
 
-	content, err := ioutil.ReadFile("/tmp/dat1")
+	content, err := ioutil.ReadFile(temppath)
 	if err != nil {
 		t.Errorf("Rigging reading from file yielded an error")
 	}
