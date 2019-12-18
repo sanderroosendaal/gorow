@@ -327,7 +327,7 @@ func postprogress(secret, progressurl string, progress int) (statuscode int) {
 	}
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return 408
