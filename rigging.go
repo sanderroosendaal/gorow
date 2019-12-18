@@ -119,3 +119,21 @@ func NewRig(Lin float64, Mb float64, Lscull float64,
 		_Bladearea:  bladearea,
 	}
 }
+
+// RigEight 8+
+var RigEight = NewRig(1.14, 151, 3.205, 1.6, 0.88, "row", -0.93, 0.1174, 0.545, 8, 1)
+
+// RigQuad 4x
+var RigQuad = NewRig(0.9, 52, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 4, 1.11)
+
+// RigFour 4-
+var RigFour = NewRig(1.14, 50, 3.205, 1.6, 0.88, "row", -0.93, 0.1174, 0.545, 4, 1)
+
+// RigPair 2-
+var RigPair = NewRig(1.14, 27, 3.205, 1.6, 0.88, "row", -0.93, 0.1174, 0.46, 2, 1.05)
+
+// RigDouble 2x
+var RigDouble = NewRig(0.9, 27, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 2, 1.05)
+
+// RigSingle 1x
+var RigSingle = NewRig(0.9, 14, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 0.98)
