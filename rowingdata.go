@@ -334,7 +334,7 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 func postprogress(secret, progressurl string, progress int) (statuscode int) {
 	postData := url.Values{}
 	postData.Set("secret", secret)
-	postData.Set("progress", fmt.Sprintf("%d", progress))
+	postData.Set("value", fmt.Sprintf("%d", progress))
 
 	req, err := http.NewRequest("POST", progressurl, strings.NewReader(postData.Encode()))
 	if err != nil {
