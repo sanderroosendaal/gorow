@@ -1,6 +1,7 @@
 package gorow
 
 import (
+	"compress/gzip"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -167,12 +169,25 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err er
 
 // ReadCSV reads rowing data into data frame
 func ReadCSV(f string) ([]StrokeRecord, error) {
+	// check if gzip
+	ext := filepath.Ext(f)
+
 	csvFile, err := os.Open(f)
 	if err != nil {
 		return []StrokeRecord{}, errors.New("ReadCSV: Unable to open file")
 	}
 	defer csvFile.Close()
-	reader := csv.NewReader(csvFile)
+	var rg io.Reader
+	if ext == ".gz" {
+		rg, err = gzip.NewReader(csvFile)
+		if err != nil {
+			return []StrokeRecord{}, errors.New("ReadCSV: Unable to open gzip")
+		}
+		// defer rg.Close()
+	} else {
+		rg = csvFile
+	}
+	reader := csv.NewReader(rg)
 	// should be for record,err = reader.Read
 	// dict[header[i]] = record[i]
 	// https://gist.github.com/drernie/5684f9def5bee832ebc50cabb46c377a
@@ -344,7 +359,7 @@ func OTWSetPower(
 	rg *Rig,
 	secret string,
 	progressurl string,
-	powermeasured bool) {
+	powermeasured bool) error {
 
 	// a blocking channel to keep concurrency under control
 	semaphoreChan := make(chan struct{}, 4)
@@ -419,6 +434,7 @@ func OTWSetPower(
 	if len(progressurl) > 0 {
 		done <- struct{}{}
 	}
+	return nil
 }
 
 // AveragePower calculates average power

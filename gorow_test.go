@@ -67,6 +67,18 @@ func TestCSVReader(t *testing.T) {
 	}
 }
 
+func TestCSVReaderGZip(t *testing.T) {
+	strokes, err := ReadCSV("otw.csv.gz")
+	if err != nil {
+		t.Errorf("CSVReader returned an error: %v", err.Error())
+	}
+	want := 990
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+}
+
 func TestCSVReaderWriter(t *testing.T) {
 	strokes, err := ReadCSV("testdata.csv")
 	if err != nil {
