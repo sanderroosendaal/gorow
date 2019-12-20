@@ -34,38 +34,37 @@ func reverseMap(m map[string]string) map[string]string {
 
 // StrokeRecord sort of dataframe
 type StrokeRecord struct {
-	timestamp          float64
-	distance           float64
-	spm                float64
-	hr                 float64
-	pace               float64
-	power              float64
-	drivelength        float64
-	strokedistance     float64
-	drivetime          float64
-	dragfactor         int
-	strokerecoverytime float64
-	workperstroke      float64
-	averageforce       float64
-	peakforce          float64
-	velo               float64
-	lapnr              int
-	intervaltime       float64
-	calories           float64
-	workoutstate       int
-	latitude           float64
-	longitude          float64
-	bearing            float64
-	nowindpace         float64
-	equivergpower      float64
-	modelpower         float64
-	modelfavg          float64
-	modeldrivelength   float64
+	timestamp          float64 `rowingdata:"TimeStamp (sec)"`
+	distance           float64 `rowingdata:" Horizontal (meters)"`
+	spm                float64 `rowingdata:" Cadence (stokes/min)"`
+	hr                 float64 `rowingdata:" HRCur (bpm)"`
+	pace               float64 `rowingdata:" Stroke500mPace (sec/500m)"`
+	power              float64 `rowingdata:" Power (watts)"`
+	drivelength        float64 `rowingdata:" DriveLength (meters)"`
+	strokedistance     float64 `rowingdata:" StrokeDistance (meters)"`
+	drivetime          float64 `rowingdata:" drivetime"`
+	dragfactor         int     `rowingdata:" DragFactor"`
+	strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)"`
+	workperstroke      float64 `rowingdata:" WorkPerStroke (joules)"`
+	averageforce       float64 `rowingdata:" AverageDriveForce (lbs)"`
+	peakforce          float64 `rowingdata:" PeakDriveForce (lbs)"`
+	velo               float64 `rowingdata:" Speed (m/sec)"`
+	lapnr              int     `rowingdata:" lapIdx"`
+	intervaltime       float64 `rowingdata:" ElapsedTime (sec)"`
+	calories           float64 `rowingdata:" Calories (kCal)"`
+	workoutstate       int     `rowingdata:" WorkoutState"`
+	latitude           float64 `rowingdata:" latitude"`
+	longitude          float64 `rowingdata:" longitude"`
+	bearing            float64 `rowingdata:" bearing"`
+	nowindpace         float64 `rowingdata:"nowindpace"`
+	equivergpower      float64 `rowingdata:"Equiv erg Power"`
+	modelpower         float64 `rowingdata:"power (model)"`
+	modelfavg          float64 `rowingdata:"averageforce (model)"`
+	modeldrivelength   float64 `rowingdata:"drivelength (model)"`
 }
 
 // GetField gets field value as float from StrokeRecord
 func (s *StrokeRecord) GetField(field string) (float64, error) {
-
 	r := reflect.ValueOf(s)
 	f := reflect.Indirect(r).FieldByName(field)
 	tip := f.Type().Name()
@@ -78,41 +77,18 @@ func (s *StrokeRecord) GetField(field string) (float64, error) {
 	return 0, errors.New("GetField returned an invalid type")
 }
 
-// following could perhaps be done by tags in the struct
+// StrokeFieldMapping maps StrokeRecord field names to CSV header names
+func StrokeFieldMapping(field string) (string, error) {
+	s := &StrokeRecord{}
+	r := reflect.TypeOf(s)
+	f, ok := r.Elem().FieldByName(field)
 
-// FieldMapping maps StrokeRecord field names to CSV header names
-var FieldMapping = map[string]string{
-	"timestamp":          "TimeStamp (sec)",
-	"distance":           " Horizontal (meters)",
-	"spm":                " Cadence (stokes/min)",
-	"hr":                 " HRCur (bpm)",
-	"pace":               " Stroke500mPace (sec/500m)", //pace               float64
-	"power":              " Power (watts)",             //power              float64
-	"drivelength":        " DriveLength (meters)",      //drivelength        float64
-	"strokedistance":     " StrokeDistance (meters)",   //strokedistance     float64
-	"drivetime":          " drivetime",                 //drivetime          float64
-	"dragfactor":         " DragFactor",                //dragfactor         int
-	"strokerecoverytime": " StrokeRecoveryTime (ms)",   //strokerecoverytime float64
-	"workperstroke":      " WorkPerStroke (joules)",    //workperstroke      float64
-	"averageforce":       " AverageDriveForce (lbs)",   //averageforce       float64
-	"peakforce":          " PeakDriveForce (lbs)",      //peakforce          float64
-	"velo":               " Speed (m/sec)",             //velo               float64
-	"lapnr":              " lapIdx",                    //lapnr              int
-	"intervaltime":       " ElapsedTime (sec)",         //intervaltime       float64
-	"calories":           " Calories (kCal)",           //calories           float64
-	"workoutstate":       " WorkoutState",              //workoutstate       int
-	"latitude":           " latitude",                  //latitude           float64
-	"longitude":          " longitude",                 //longitude          float64
-	"bearing":            " bearing",                   //bearing            float64
-	"nowindpace":         "nowindpace",
-	"equivergpower":      "Equiv erg Power",
-	"modelpower":         "power (model)",
-	"modelfavg":          "averageforce (model)",
-	"modeldrivelength":   "drivelength (model)",
+	if !ok {
+		return "", errors.New("FieldByName didn't work")
+	}
+
+	return f.Tag.Get("rowingdata"), nil
 }
-
-// InverseFieldMapping returns key value exchanged of FieldMapping
-var InverseFieldMapping = reverseMap(FieldMapping)
 
 func getfloatrecord(s string) (float64, error) {
 	return strconv.ParseFloat(strings.TrimSpace(s), 64)
@@ -197,7 +173,11 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 	names := structs.Names(&StrokeRecord{})
 	var header []string
 	for _, name := range names {
-		header = append(header, FieldMapping[name])
+		rowingdataname, err := StrokeFieldMapping(name)
+		if err != nil {
+			return false, err
+		}
+		header = append(header, rowingdataname)
 	}
 	records = append(records, header)
 	for _, stroke := range strokes {
