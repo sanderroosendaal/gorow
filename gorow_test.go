@@ -136,7 +136,7 @@ func TestOTWSetPower(t *testing.T) {
 	OTWSetPower(
 		strokes, c, rg, "maherio",
 		"http://localhost:8000/rowers/record-progress/testprogress/",
-		false,
+		false, true,
 	)
 	fmt.Printf("After: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 }

@@ -138,7 +138,6 @@ func gzipper(f string) (ok bool, err error) {
 
 	filename := filepath.Base(f)
 	target := fmt.Sprintf("%s.gz", f)
-	log.Printf("Zipping from %v to %v", f, target)
 	writer, err := os.Create(target)
 	if err != nil {
 		return false, err
@@ -195,7 +194,6 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 	// gzip
 	if gz {
 		f = f[:len(f)-3]
-		fmt.Println(f)
 		_, err := csvwriter(records, f)
 		if err != nil {
 			return false, err
@@ -399,7 +397,8 @@ func OTWSetPower(
 	rg *Rig,
 	secret string,
 	progressurl string,
-	powermeasured bool) error {
+	powermeasured bool,
+	verbose bool) error {
 
 	// a blocking channel to keep concurrency under control
 	semaphoreChan := make(chan struct{}, 4)
@@ -425,7 +424,9 @@ func OTWSetPower(
 					return
 				case <-ticker2.C:
 					perc := 100 * cntr / (aantal - 1)
-					log.Printf("Percentage done: %d\n", perc)
+					if verbose {
+						log.Printf("Percentage done: %d\n", perc)
+					}
 					postprogress(secret, progressurl, perc)
 				}
 			}
