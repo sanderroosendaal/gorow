@@ -132,13 +132,13 @@ func TestOTWSetPower(t *testing.T) {
 	}
 	strokes = strokes[100:120]
 	AddBearing(strokes)
-	fmt.Printf("Before: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
+	fmt.Printf("Before: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 	OTWSetPower(
 		strokes, c, rg, "maherio",
 		"http://localhost:8000/rowers/record-progress/testprogress/",
 		false,
 	)
-	fmt.Printf("After: %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes))
+	fmt.Printf("After: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 }
 
 func TestInterPol3(t *testing.T) {

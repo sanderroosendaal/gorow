@@ -37,7 +37,7 @@ type StrokeRecord struct {
 	timestamp          float64
 	distance           float64
 	spm                float64
-	hr                 int
+	hr                 float64
 	pace               float64
 	power              float64
 	drivelength        float64
@@ -298,7 +298,7 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 						row.spm = f
 					}
 				case " HRCur (bpm)":
-					if f, err := getintrecord(record[i]); err == nil {
+					if f, err := getfloatrecord(record[i]); err == nil {
 						row.hr = f
 					}
 				case " Power (watts)":
@@ -504,6 +504,15 @@ func AveragePower(strokes []StrokeRecord) float64 {
 		power += stroke.power
 	}
 	return power / float64(len(strokes))
+}
+
+// AverageHR calculates average heart rate
+func AverageHR(strokes []StrokeRecord) float64 {
+	hr := 0.0
+	for _, stroke := range strokes {
+		hr += stroke.hr
+	}
+	return hr / float64(len(strokes))
 }
 
 func geodistance(
