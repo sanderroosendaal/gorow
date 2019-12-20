@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -93,9 +94,29 @@ func TestCSVReaderWriter(t *testing.T) {
 	if !ok {
 		t.Errorf("CSVWriter: %v", err)
 	}
+
+	strokes2, err := ReadCSV("out2.csv")
+	wantf := AveragePower(strokes)
+	gotf := AveragePower(strokes2)
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("WriteCSV equation gave incorrect result writing Power. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+
+	err = os.Remove("out2.csv.gz")
 	ok, err = WriteCSV(strokes, "out2.csv.gz", true, true)
 	if !ok {
 		t.Errorf("CSVWriter (gzip): %v", err)
+	}
+
+	strokes, err = ReadCSV("out2.csv.gz")
+	wantf = AveragePower(strokes)
+	gotf = AveragePower(strokes2)
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("WriteCSV with gzip equation gave incorrect result writing Power. Got %f, wanted %f\n",
+			gotf, wantf)
 	}
 }
 

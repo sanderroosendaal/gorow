@@ -150,24 +150,39 @@ func csvwriter(records [][]string, f string) (ok bool, err error) {
 	return true, nil
 }
 
-func gzwriter(records [][]string, f string) (ok bool, err error) {
+func gzipper(f string) (ok bool, err error) {
 	// file does not exist or overwrite is set to true
-	gzFile, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
+	// file does not exist or overwrite is set to true
+
+	// zip it
+	reader, err := os.Open(f)
 	if err != nil {
 		return false, err
 	}
-	defer gzFile.Close()
-	rg := gzip.NewWriter(gzFile)
-	// create writer
-	w := csv.NewWriter(rg)
-	// write header
-	w.WriteAll(records)
 
-	if err := w.Error(); err != nil {
+	filename := filepath.Base(f)
+	target := fmt.Sprintf("%s.gz", f)
+	log.Printf("Zipping from %v to %v", f, target)
+	writer, err := os.Create(target)
+	if err != nil {
 		return false, err
 	}
-	rg.Flush()
-	rg.Close()
+	defer writer.Close()
+
+	archiver := gzip.NewWriter(writer)
+	archiver.Name = filename
+	defer archiver.Close()
+
+	_, err = io.Copy(archiver, reader)
+	if err != nil {
+		return false, err
+	}
+
+	err = os.Remove(f)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -199,11 +214,16 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 
 	// gzip
 	if gz {
-		return gzwriter(records,f)
+		f = f[:len(f)-3]
+		fmt.Println(f)
+		_, err := csvwriter(records, f)
+		if err != nil {
+			return false, err
+		}
+		return gzipper(f)
 	}
 
 	return csvwriter(records, f)
-
 
 }
 
