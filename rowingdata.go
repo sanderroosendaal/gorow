@@ -358,8 +358,18 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 					if f, err := getfloatrecord(record[i]); err == nil {
 						row.modeldrivelength = f
 					}
-
-					//	   DragFactor
+				case "vwind":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.vwind = f
+					}
+				case "winddirection":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.winddirection = f
+					}
+				case "vstream":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.vstream = f
+					}
 				}
 			}
 			if row.velo == 0 && row.pace != 0 {
