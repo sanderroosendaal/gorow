@@ -78,6 +78,8 @@ func (s *StrokeRecord) GetField(field string) (float64, error) {
 	return 0, errors.New("GetField returned an invalid type")
 }
 
+// following could perhaps be done by tags in the struct
+
 // FieldMapping maps StrokeRecord field names to CSV header names
 var FieldMapping = map[string]string{
 	"timestamp":          "TimeStamp (sec)",
@@ -129,8 +131,48 @@ func exists(name string) bool {
 	return true
 }
 
+func csvwriter(records [][]string, f string) (ok bool, err error) {
+	// file does not exist or overwrite is set to true
+	csvFile, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return false, err
+	}
+	defer csvFile.Close()
+
+	// create writer
+	w := csv.NewWriter(csvFile)
+	// write header
+	w.WriteAll(records)
+
+	if err := w.Error(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func gzwriter(records [][]string, f string) (ok bool, err error) {
+	// file does not exist or overwrite is set to true
+	gzFile, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return false, err
+	}
+	defer gzFile.Close()
+	rg := gzip.NewWriter(gzFile)
+	// create writer
+	w := csv.NewWriter(rg)
+	// write header
+	w.WriteAll(records)
+
+	if err := w.Error(); err != nil {
+		return false, err
+	}
+	rg.Flush()
+	rg.Close()
+	return true, nil
+}
+
 // WriteCSV writes data to file
-func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err error) {
+func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok bool, err error) {
 	if exists(f) && !overwrite {
 		err := errors.New("File exists and overwrite was set to false")
 		return false, err
@@ -154,17 +196,15 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err er
 		}
 		records = append(records, record)
 	}
-	// file does not exist or overwrite is set to true
-	csvFile, _ := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
-	defer csvFile.Close()
-	// create writer
-	w := csv.NewWriter(csvFile)
-	// write header
-	w.WriteAll(records)
-	if err := w.Error(); err != nil {
-		return false, err
+
+	// gzip
+	if gz {
+		return gzwriter(records,f)
 	}
-	return true, nil
+
+	return csvwriter(records, f)
+
+
 }
 
 // ReadCSV reads rowing data into data frame

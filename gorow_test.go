@@ -89,9 +89,13 @@ func TestCSVReaderWriter(t *testing.T) {
 	if want != got {
 		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
 	}
-	ok, err := WriteCSV(strokes, "out2.csv", true)
+	ok, err := WriteCSV(strokes, "out2.csv", true, false)
 	if !ok {
 		t.Errorf("CSVWriter: %v", err)
+	}
+	ok, err = WriteCSV(strokes, "out2.csv.gz", true, true)
+	if !ok {
+		t.Errorf("CSVWriter (gzip): %v", err)
 	}
 }
 
