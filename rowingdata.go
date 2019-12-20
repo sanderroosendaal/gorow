@@ -34,38 +34,37 @@ func reverseMap(m map[string]string) map[string]string {
 
 // StrokeRecord sort of dataframe
 type StrokeRecord struct {
-	timestamp          float64
-	distance           float64
-	spm                float64
-	hr                 int
-	pace               float64
-	power              float64
-	drivelength        float64
-	strokedistance     float64
-	drivetime          float64
-	dragfactor         int
-	strokerecoverytime float64
-	workperstroke      float64
-	averageforce       float64
-	peakforce          float64
-	velo               float64
-	lapnr              int
-	intervaltime       float64
-	calories           float64
-	workoutstate       int
-	latitude           float64
-	longitude          float64
-	bearing            float64
-	nowindpace         float64
-	equivergpower      float64
-	modelpower         float64
-	modelfavg          float64
-	modeldrivelength   float64
+	timestamp          float64 `rowingdata:"TimeStamp (sec)"`
+	distance           float64 `rowingdata:" Horizontal (meters)"`
+	spm                float64 `rowingdata:" Cadence (stokes/min)"`
+	hr                 float64 `rowingdata:" HRCur (bpm)"`
+	pace               float64 `rowingdata:" Stroke500mPace (sec/500m)"`
+	power              float64 `rowingdata:" Power (watts)"`
+	drivelength        float64 `rowingdata:" DriveLength (meters)"`
+	strokedistance     float64 `rowingdata:" StrokeDistance (meters)"`
+	drivetime          float64 `rowingdata:" drivetime"`
+	dragfactor         int     `rowingdata:" DragFactor"`
+	strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)"`
+	workperstroke      float64 `rowingdata:" WorkPerStroke (joules)"`
+	averageforce       float64 `rowingdata:" AverageDriveForce (lbs)"`
+	peakforce          float64 `rowingdata:" PeakDriveForce (lbs)"`
+	velo               float64 `rowingdata:" Speed (m/sec)"`
+	lapnr              int     `rowingdata:" lapIdx"`
+	intervaltime       float64 `rowingdata:" ElapsedTime (sec)"`
+	calories           float64 `rowingdata:" Calories (kCal)"`
+	workoutstate       int     `rowingdata:" WorkoutState"`
+	latitude           float64 `rowingdata:" latitude"`
+	longitude          float64 `rowingdata:" longitude"`
+	bearing            float64 `rowingdata:" bearing"`
+	nowindpace         float64 `rowingdata:"nowindpace"`
+	equivergpower      float64 `rowingdata:"Equiv erg Power"`
+	modelpower         float64 `rowingdata:"power (model)"`
+	modelfavg          float64 `rowingdata:"averageforce (model)"`
+	modeldrivelength   float64 `rowingdata:"drivelength (model)"`
 }
 
 // GetField gets field value as float from StrokeRecord
 func (s *StrokeRecord) GetField(field string) (float64, error) {
-
 	r := reflect.ValueOf(s)
 	f := reflect.Indirect(r).FieldByName(field)
 	tip := f.Type().Name()
@@ -78,39 +77,18 @@ func (s *StrokeRecord) GetField(field string) (float64, error) {
 	return 0, errors.New("GetField returned an invalid type")
 }
 
-// FieldMapping maps StrokeRecord field names to CSV header names
-var FieldMapping = map[string]string{
-	"timestamp":          "TimeStamp (sec)",
-	"distance":           " Horizontal (meters)",
-	"spm":                " Cadence (stokes/min)",
-	"hr":                 " HRCur (bpm)",
-	"pace":               " Stroke500mPace (sec/500m)", //pace               float64
-	"power":              " Power (watts)",             //power              float64
-	"drivelength":        " DriveLength (meters)",      //drivelength        float64
-	"strokedistance":     " StrokeDistance (meters)",   //strokedistance     float64
-	"drivetime":          " drivetime",                 //drivetime          float64
-	"dragfactor":         " DragFactor",                //dragfactor         int
-	"strokerecoverytime": " StrokeRecoveryTime (ms)",   //strokerecoverytime float64
-	"workperstroke":      " WorkPerStroke (joules)",    //workperstroke      float64
-	"averageforce":       " AverageDriveForce (lbs)",   //averageforce       float64
-	"peakforce":          " PeakDriveForce (lbs)",      //peakforce          float64
-	"velo":               " Speed (m/sec)",             //velo               float64
-	"lapnr":              " lapIdx",                    //lapnr              int
-	"intervaltime":       " ElapsedTime (sec)",         //intervaltime       float64
-	"calories":           " Calories (kCal)",           //calories           float64
-	"workoutstate":       " WorkoutState",              //workoutstate       int
-	"latitude":           " latitude",                  //latitude           float64
-	"longitude":          " longitude",                 //longitude          float64
-	"bearing":            " bearing",                   //bearing            float64
-	"nowindpace":         "nowindpace",
-	"equivergpower":      "Equiv erg Power",
-	"modelpower":         "power (model)",
-	"modelfavg":          "averageforce (model)",
-	"modeldrivelength":   "drivelength (model)",
-}
+// StrokeFieldMapping maps StrokeRecord field names to CSV header names
+func StrokeFieldMapping(field string) (string, error) {
+	s := &StrokeRecord{}
+	r := reflect.TypeOf(s)
+	f, ok := r.Elem().FieldByName(field)
 
-// InverseFieldMapping returns key value exchanged of FieldMapping
-var InverseFieldMapping = reverseMap(FieldMapping)
+	if !ok {
+		return "", errors.New("FieldByName didn't work")
+	}
+
+	return f.Tag.Get("rowingdata"), nil
+}
 
 func getfloatrecord(s string) (float64, error) {
 	return strconv.ParseFloat(strings.TrimSpace(s), 64)
@@ -129,8 +107,62 @@ func exists(name string) bool {
 	return true
 }
 
+func csvwriter(records [][]string, f string) (ok bool, err error) {
+	// file does not exist or overwrite is set to true
+	csvFile, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return false, err
+	}
+	defer csvFile.Close()
+
+	// create writer
+	w := csv.NewWriter(csvFile)
+	// write header
+	w.WriteAll(records)
+
+	if err := w.Error(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func gzipper(f string) (ok bool, err error) {
+	// file does not exist or overwrite is set to true
+	// file does not exist or overwrite is set to true
+
+	// zip it
+	reader, err := os.Open(f)
+	if err != nil {
+		return false, err
+	}
+
+	filename := filepath.Base(f)
+	target := fmt.Sprintf("%s.gz", f)
+	writer, err := os.Create(target)
+	if err != nil {
+		return false, err
+	}
+	defer writer.Close()
+
+	archiver := gzip.NewWriter(writer)
+	archiver.Name = filename
+	defer archiver.Close()
+
+	_, err = io.Copy(archiver, reader)
+	if err != nil {
+		return false, err
+	}
+
+	err = os.Remove(f)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // WriteCSV writes data to file
-func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err error) {
+func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok bool, err error) {
 	if exists(f) && !overwrite {
 		err := errors.New("File exists and overwrite was set to false")
 		return false, err
@@ -140,7 +172,11 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err er
 	names := structs.Names(&StrokeRecord{})
 	var header []string
 	for _, name := range names {
-		header = append(header, FieldMapping[name])
+		rowingdataname, err := StrokeFieldMapping(name)
+		if err != nil {
+			return false, err
+		}
+		header = append(header, rowingdataname)
 	}
 	records = append(records, header)
 	for _, stroke := range strokes {
@@ -154,17 +190,19 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err er
 		}
 		records = append(records, record)
 	}
-	// file does not exist or overwrite is set to true
-	csvFile, _ := os.OpenFile(f, os.O_WRONLY|os.O_CREATE, 0777)
-	defer csvFile.Close()
-	// create writer
-	w := csv.NewWriter(csvFile)
-	// write header
-	w.WriteAll(records)
-	if err := w.Error(); err != nil {
-		return false, err
+
+	// gzip
+	if gz {
+		f = f[:len(f)-3]
+		_, err := csvwriter(records, f)
+		if err != nil {
+			return false, err
+		}
+		return gzipper(f)
 	}
-	return true, nil
+
+	return csvwriter(records, f)
+
 }
 
 // ReadCSV reads rowing data into data frame
@@ -238,7 +276,7 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 						row.spm = f
 					}
 				case " HRCur (bpm)":
-					if f, err := getintrecord(record[i]); err == nil {
+					if f, err := getfloatrecord(record[i]); err == nil {
 						row.hr = f
 					}
 				case " Power (watts)":
@@ -359,7 +397,8 @@ func OTWSetPower(
 	rg *Rig,
 	secret string,
 	progressurl string,
-	powermeasured bool) error {
+	powermeasured bool,
+	verbose bool) error {
 
 	// a blocking channel to keep concurrency under control
 	semaphoreChan := make(chan struct{}, 4)
@@ -385,7 +424,9 @@ func OTWSetPower(
 					return
 				case <-ticker2.C:
 					perc := 100 * cntr / (aantal - 1)
-					log.Printf("Percentage done: %d\n", perc)
+					if verbose {
+						log.Printf("Percentage done: %d\n", perc)
+					}
 					postprogress(secret, progressurl, perc)
 				}
 			}
@@ -411,10 +452,12 @@ func OTWSetPower(
 
 				pwr := res[0]
 				frc := res[2]
+				nowindp := res[3]
 				if !powermeasured {
 					strokes[i].power = pwr
 					strokes[i].averageforce = frc / LbstoN
 				}
+				strokes[i].nowindpace = nowindp
 				strokes[i].modelpower = pwr
 				strokes[i].modelfavg = frc / LbstoN
 			}
@@ -444,6 +487,15 @@ func AveragePower(strokes []StrokeRecord) float64 {
 		power += stroke.power
 	}
 	return power / float64(len(strokes))
+}
+
+// AverageHR calculates average heart rate
+func AverageHR(strokes []StrokeRecord) float64 {
+	hr := 0.0
+	for _, stroke := range strokes {
+		hr += stroke.hr
+	}
+	return hr / float64(len(strokes))
 }
 
 func geodistance(
