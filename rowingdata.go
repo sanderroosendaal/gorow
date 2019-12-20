@@ -61,6 +61,9 @@ type StrokeRecord struct {
 	modelpower         float64 `rowingdata:"power (model)"`
 	modelfavg          float64 `rowingdata:"averageforce (model)"`
 	modeldrivelength   float64 `rowingdata:"drivelength (model)"`
+	vwind              float64 `rowingdata:"vwind"`
+	winddirection      float64 `rowingdata:"winddirection"`
+	vstream            float64 `rowingdata:"vstream"`
 }
 
 // GetField gets field value as float from StrokeRecord
@@ -447,7 +450,11 @@ func OTWSetPower(
 			semaphoreChan <- struct{}{}
 
 			c.Tempo = stroke.spm
-			res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
+			res, err := PhysGetPower(
+				stroke.velo, c, rg, stroke.bearing,
+				stroke.vwind, stroke.winddirection, stroke.vstream,
+			)
+			//res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
 			if err == nil {
 
 				pwr := res[0]
@@ -555,6 +562,7 @@ func AverageSPM(strokes []StrokeRecord) float64 {
 
 // AddBearing returns a stroke set with bearing
 func AddBearing(strokes []StrokeRecord) {
+
 	for i := 0; i < len(strokes)-1; i++ {
 		long1 := strokes[i].longitude
 		lat1 := strokes[i].latitude
@@ -563,5 +571,49 @@ func AddBearing(strokes []StrokeRecord) {
 
 		_, bearing := geodistance(lat1, long1, lat2, long2)
 		strokes[i].bearing = bearing
+	}
+}
+
+// AddStream adds river stream
+func AddStream(strokes []StrokeRecord, vstream float64, unit string) {
+	// foot / second
+	if unit == "f" {
+		vstream *= 0.3048
+	}
+	// knots
+	if unit == "k" {
+		vstream /= 1.994
+	}
+	// pace difference equivalent (approx)
+	if unit == "p" {
+		vstream *= 8 / 500
+	}
+	// now vstream is in m/s
+	for _, stroke := range strokes {
+		stroke.vstream = vstream
+	}
+}
+
+// AddWind adds wind speed and direction
+func AddWind(strokes []StrokeRecord, vwind float64, winddirection float64, unit string) {
+	// beaufort
+	if unit == "b" {
+		vwind = 0.837 * math.Sqrt(vwind*vwind*vwind)
+	}
+	// knots
+	if unit == "k" {
+		vwind *= 1.994
+	}
+	// km/h
+	if unit == "kmh" {
+		vwind /= 3.6
+	}
+	// mph
+	if unit == "mph" {
+		vwind *= 0.44704
+	}
+	for _, stroke := range strokes {
+		stroke.vwind = vwind
+		stroke.winddirection = winddirection
 	}
 }

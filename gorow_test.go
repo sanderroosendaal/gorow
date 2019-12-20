@@ -132,6 +132,8 @@ func TestOTWSetPower(t *testing.T) {
 	}
 	strokes = strokes[100:120]
 	AddBearing(strokes)
+	AddStream(strokes, 0, "f")
+	AddWind(strokes, 0, 0, "m")
 	fmt.Printf("Before: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 	OTWSetPower(
 		strokes, c, rg, "maherio",
