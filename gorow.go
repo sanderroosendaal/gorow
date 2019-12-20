@@ -4,6 +4,7 @@ Package gorow package to simulate the physics rowing (sport)
 package gorow
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -62,14 +63,17 @@ func slicesadd(vs ...[]float64) []float64 {
 }
 
 // LinSpace to create a Linear range
-func LinSpace(start float64, stop float64, N int) []float64 {
+func LinSpace(start float64, stop float64, N int) ([]float64, error) {
+	if N <= 0 {
+		return nil, errors.New("LinSpace: Length of slice must by > 0")
+	}
 	rnge := make([]float64, N)
 	var step = (stop - start) / float64(N-1)
 	for x := range rnge {
 		rnge[x] = start + step*float64(x)
 	}
 
-	return rnge
+	return rnge, nil
 }
 
 // ConstSpace to create a array of value
@@ -198,7 +202,7 @@ func deFootboard(Mc, mb, vs1, vs2 float64) float64 {
 }
 
 // BladeForce calculates the blade slip given a handle force
-func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
+func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, error) {
 	var Lin = rigging.Lin
 	var Lscull = rigging.Lscull
 	var lout = Lscull - Lin
@@ -218,7 +222,10 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 	var a float64
 
 	var phidot0 = vb * math.Cos(oarangle) / lout
-	var phidot = LinSpace(phidot0, 2*math.Abs(phidot0), N)
+	phidot, err := LinSpace(phidot0, 2*math.Abs(phidot0), N)
+	if err != nil {
+		return nil, err
+	}
 
 	var vblade = make([]float64, N)
 
@@ -281,7 +288,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) []float64 {
 		CL,      // 5
 		CD,      // 6
 		a,       // 7
-	}
+	}, nil
 }
 
 // EnergyBalance calculates one stroke with average handle force as input
@@ -294,7 +301,7 @@ func EnergyBalance(
 	catchacceler float64,
 	windv float64,
 	dowind bool,
-) []float64 {
+) ([]float64, error) {
 
 	var dv, vavg, vend, ratio, power float64
 
@@ -321,7 +328,10 @@ func EnergyBalance(
 
 	aantal := 1 + int(math.Round(60/(Tempo*dt)))
 
-	time := LinSpace(0, 60./Tempo, aantal)
+	time, err := LinSpace(0, 60./Tempo, aantal)
+	if err != nil {
+		return nil, err
+	}
 
 	vs := make([]float64, aantal)
 	vb := make([]float64, aantal)
@@ -392,7 +402,10 @@ func EnergyBalance(
 		Fi := crew.forceprofile(F, handlepos)
 		Fbladei := Fi * Lin / lout
 		// fmt.Println(i, Fbladei, Fi)
-		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fbladei)
+		res, err := BladeForce(oarangle[i-1], rigging, vb[i-1], Fbladei)
+		if err != nil {
+			return nil, err
+		}
 
 		phidot2 := res[0]
 		vhand2 := phidot2 * Lin * math.Cos(oarangle[i-1])
@@ -421,7 +434,10 @@ func EnergyBalance(
 		Fhandle[i-1] = Fi
 		Fblade[i-1] = Fi * Lin / lout
 
-		res := BladeForce(oarangle[i-1], rigging, vb[i-1], Fblade[i-1])
+		res, err := BladeForce(oarangle[i-1], rigging, vb[i-1], Fblade[i-1])
+		if err != nil {
+			return nil, err
+		}
 		phidot := res[0]
 
 		Fprop[i-1] = res[2] * float64(Nrowers)
@@ -635,7 +651,7 @@ func EnergyBalance(
 		RIMcatchD,    // 13
 		catchacceler, // 14
 		dragEff,      // 15
-	}
+	}, nil
 
 }
 
@@ -650,7 +666,7 @@ func Stroke(
 	catchacceler float64,
 	dowind bool,
 	windv float64,
-) []float64 {
+) ([]float64, error) {
 
 	var dv, vavg, vend, vmin, vmax, ratio, energy, power, eff float64
 
@@ -658,7 +674,10 @@ func Stroke(
 	tcatchacceler := catchacceler
 
 	for i := 0; i < aantal; i++ {
-		var res = EnergyBalance(F, crew, rigging, v0, dt, tcatchacceler, windv, dowind)
+		res, err := EnergyBalance(F, crew, rigging, v0, dt, tcatchacceler, windv, dowind)
+		if err != nil {
+			return nil, err
+		}
 
 		dv = dv + res[0]
 		vend = vend + res[1]
@@ -718,7 +737,7 @@ func Stroke(
 		RIMcatchD,    // 13
 		catchacceler, // 14
 		DragEff,      // 15
-	}
+	}, nil
 }
 
 // ConstantVeloFast calculates force and power to achieve certain boat speed
@@ -734,9 +753,12 @@ func ConstantVeloFast(
 	catchacceler float64,
 	windv float64,
 	dowind bool,
-) []float64 {
+) ([]float64, error) {
 
-	F := LinSpace(Fmin, Fmax, aantal)
+	F, err := LinSpace(Fmin, Fmax, aantal)
+	if err != nil {
+		return nil, err
+	}
 	velocity := make([]float64, aantal)
 
 	ca := catchacceler
@@ -745,12 +767,18 @@ func ConstantVeloFast(
 
 	for i, ff := range F {
 		for dv/vend > 0.001 {
-			res := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			res, err := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			if err != nil {
+				return nil, err
+			}
 			dv = res[0]
 			vend = res[1]
 			ca = res[14]
 		}
-		res := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		res, err := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		if err != nil {
+			return nil, err
+		}
 		velocity[i] = res[2]
 	}
 
@@ -759,13 +787,19 @@ func ConstantVeloFast(
 	dv = 1.0
 
 	for dv/vend > 0.001 {
-		res := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		res, err := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		if err != nil {
+			return nil, err
+		}
 		dv = res[0]
 		vend = res[1]
 		ca = res[14]
 	}
 
-	res := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	res, err := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	if err != nil {
+		return nil, err
+	}
 	vavg := res[2]
 	ratio := res[3]
 	pw := res[5]
@@ -777,7 +811,7 @@ func ConstantVeloFast(
 		ratio, // 2
 		pw,    // 3
 		eff,   // 4
-	}
+	}, nil
 
 }
 
@@ -795,9 +829,12 @@ func ConstantWattFast(
 	windv float64,
 	dowind bool,
 	maxIterationsAllowed int,
-) []float64 {
+) ([]float64, error) {
 
-	F := LinSpace(Fmin, Fmax, aantal)
+	F, err := LinSpace(Fmin, Fmax, aantal)
+	if err != nil {
+		return nil, err
+	}
 	power := make([]float64, aantal)
 
 	ca := catchacceler
@@ -806,12 +843,18 @@ func ConstantWattFast(
 
 	for i, ff := range F {
 		for dv/vend > 0.001 {
-			res := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			res, err := EnergyBalance(ff, crew, rigging, vend, timestep, ca, windv, dowind)
+			if err != nil {
+				return res, err
+			}
 			dv = res[0]
 			vend = res[1]
 			ca = res[14]
 		}
-		res := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		res, err := Stroke(ff, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+		if err != nil {
+			return nil, err
+		}
 		power[i] = res[5]
 	}
 
@@ -820,13 +863,21 @@ func ConstantWattFast(
 	dv = 1.0
 
 	for count := 0; dv/vend > 0.001 && count <= maxIterationsAllowed; count++ {
-		res := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		res, err := EnergyBalance(fres, crew, rigging, vend, timestep, ca, windv, dowind)
+		if err != nil {
+			dv = 0.01 * vend
+			vend += dv
+			continue
+		}
 		dv = res[0]
 		vend = res[1]
 		ca = res[14]
 	}
 
-	res := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	res, err := Stroke(fres, crew, rigging, vend, timestep, 10, ca, dowind, windv)
+	if err != nil {
+		return nil, err
+	}
 	vavg := res[2]
 	ratio := res[3]
 	pw := res[5]
@@ -838,7 +889,7 @@ func ConstantWattFast(
 		ratio, // 2
 		pw,    // 3
 		eff,   // 4
-	}
+	}, nil
 }
 
 func tailwind(
@@ -868,13 +919,19 @@ func PhysGetPower(
 
 	tw := tailwind(bearing, vwind, winddirection, vstream)
 	velowater := velo - vstream
-	res := ConstantVeloFast(velowater, rower, rigging, 0.03, 5, 5, 50, 600, 5, tw, true)
+	res, err := ConstantVeloFast(velowater, rower, rigging, 0.03, 5, 5, 50, 600, 5, tw, true)
+	if err != nil {
+		return nil, err
+	}
 
 	force := res[0]
 	power := res[3]
 	ratio := res[2]
 
-	res2 := ConstantWattFast(power, rower, rigging, 0.03, 5, 5, 50, 600, 5, 0, true, 15)
+	res2, err := ConstantWattFast(power, rower, rigging, 0.03, 5, 5, 50, 600, 5, 0, true, 15)
+	if err != nil {
+		return nil, err
+	}
 	pnowind := 500. / res2[1]
 
 	return []float64{

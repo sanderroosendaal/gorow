@@ -38,8 +38,8 @@ func srinterpol1(x []float64, y []float64, target float64) float64 {
 	// f := interpolate.Interp1d(x, y)
 	f := piecewiselinear.Function{X: x, Y: y}
 
-	var newx = LinSpace(x[0], x[len(x)-1], 100*len(x))
-	var newy = LinSpace(x[0], x[len(x)-1], 100*len(x))
+	var newx, _ = LinSpace(x[0], x[len(x)-1], 100*len(x))
+	var newy, _ = LinSpace(x[0], x[len(x)-1], 100*len(x))
 
 	var minysq = target
 	var minindex = 0
@@ -59,7 +59,7 @@ func srinterpol1(x []float64, y []float64, target float64) float64 {
 func srinterpol2(x []float64, y []float64, target float64) float64 {
 	var dx = x[1] - x[0]
 
-	var newx = LinSpace(x[0], x[len(x)-1], 10*len(x))
+	var newx, _ = LinSpace(x[0], x[len(x)-1], 10*len(x))
 
 	s := gospline.NewCubicSpline(x, y)
 

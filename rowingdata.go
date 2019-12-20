@@ -1,6 +1,7 @@
 package gorow
 
 import (
+	"compress/gzip"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -54,6 +56,11 @@ type StrokeRecord struct {
 	latitude           float64
 	longitude          float64
 	bearing            float64
+	nowindpace         float64
+	equivergpower      float64
+	modelpower         float64
+	modelfavg          float64
+	modeldrivelength   float64
 }
 
 // GetField gets field value as float from StrokeRecord
@@ -95,6 +102,11 @@ var FieldMapping = map[string]string{
 	"latitude":           " latitude",                  //latitude           float64
 	"longitude":          " longitude",                 //longitude          float64
 	"bearing":            " bearing",                   //bearing            float64
+	"nowindpace":         "nowindpace",
+	"equivergpower":      "Equiv erg Power",
+	"modelpower":         "power (model)",
+	"modelfavg":          "averageforce (model)",
+	"modeldrivelength":   "drivelength (model)",
 }
 
 // InverseFieldMapping returns key value exchanged of FieldMapping
@@ -156,10 +168,26 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool) (ok bool, err er
 }
 
 // ReadCSV reads rowing data into data frame
-func ReadCSV(f string) []StrokeRecord {
-	csvFile, _ := os.Open(f)
+func ReadCSV(f string) ([]StrokeRecord, error) {
+	// check if gzip
+	ext := filepath.Ext(f)
+
+	csvFile, err := os.Open(f)
+	if err != nil {
+		return []StrokeRecord{}, errors.New("ReadCSV: Unable to open file")
+	}
 	defer csvFile.Close()
-	reader := csv.NewReader(csvFile)
+	var rg io.Reader
+	if ext == ".gz" {
+		rg, err = gzip.NewReader(csvFile)
+		if err != nil {
+			return []StrokeRecord{}, errors.New("ReadCSV: Unable to open gzip")
+		}
+		// defer rg.Close()
+	} else {
+		rg = csvFile
+	}
+	reader := csv.NewReader(rg)
 	// should be for record,err = reader.Read
 	// dict[header[i]] = record[i]
 	// https://gist.github.com/drernie/5684f9def5bee832ebc50cabb46c377a
@@ -173,7 +201,7 @@ func ReadCSV(f string) []StrokeRecord {
 			break
 		}
 		if err != nil {
-			log.Fatal(err)
+			return rows, errors.New("Hit CSV reader error, returning partial result")
 		}
 		if header == nil {
 			header = record
@@ -269,6 +297,26 @@ func ReadCSV(f string) []StrokeRecord {
 					if f, err := getfloatrecord(record[i]); err == nil {
 						row.longitude = f
 					}
+				case "nowindpace":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.nowindpace = f
+					}
+				case "Equiv erg Power":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.equivergpower = f
+					}
+				case "power (model)":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.modelpower = f
+					}
+				case "averageforce (model)":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.modelfavg = f
+					}
+				case "drivelength (model)":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.modeldrivelength = f
+					}
 
 					//	   DragFactor
 				}
@@ -279,14 +327,14 @@ func ReadCSV(f string) []StrokeRecord {
 			rows = append(rows, row)
 		}
 	}
-	return rows
+	return rows, nil
 }
 
 // reportprogress
 func postprogress(secret, progressurl string, progress int) (statuscode int) {
 	postData := url.Values{}
 	postData.Set("secret", secret)
-	postData.Set("progress", fmt.Sprintf("%d", progress))
+	postData.Set("value", fmt.Sprintf("%d", progress))
 
 	req, err := http.NewRequest("POST", progressurl, strings.NewReader(postData.Encode()))
 	if err != nil {
@@ -294,7 +342,7 @@ func postprogress(secret, progressurl string, progress int) (statuscode int) {
 	}
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return 408
@@ -307,14 +355,11 @@ func postprogress(secret, progressurl string, progress int) (statuscode int) {
 // OTWSetPower adds power for OTW rows
 func OTWSetPower(
 	strokes []StrokeRecord,
+	c *Crew,
+	rg *Rig,
 	secret string,
-	progressurl string) {
-	// temporary default values
-	c := NewCrew(
-		75., 1.4, 30.0, 0.5,
-		SinusRecovery{},
-		Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
-	rg := NewRig(0.9, 14, 2.885, 1.60, 0.88, Scull, -0.93, 822.e-4, 0.46, 1, 1.0)
+	progressurl string,
+	powermeasured bool) error {
 
 	// a blocking channel to keep concurrency under control
 	semaphoreChan := make(chan struct{}, 4)
@@ -339,8 +384,8 @@ func OTWSetPower(
 				case <-done:
 					return
 				case <-ticker2.C:
-					perc := 100 * cntr / aantal
-					fmt.Printf("Percentage done: %d\n", perc)
+					perc := 100 * cntr / (aantal - 1)
+					log.Printf("Percentage done: %d\n", perc)
 					postprogress(secret, progressurl, perc)
 				}
 			}
@@ -366,9 +411,12 @@ func OTWSetPower(
 
 				pwr := res[0]
 				frc := res[2]
-				strokes[i].power = pwr
-				strokes[i].averageforce = frc / LbstoN
-
+				if !powermeasured {
+					strokes[i].power = pwr
+					strokes[i].averageforce = frc / LbstoN
+				}
+				strokes[i].modelpower = pwr
+				strokes[i].modelfavg = frc / LbstoN
 			}
 
 			// tell the wait group that we be done
@@ -386,6 +434,7 @@ func OTWSetPower(
 	if len(progressurl) > 0 {
 		done <- struct{}{}
 	}
+	return nil
 }
 
 // AveragePower calculates average power
