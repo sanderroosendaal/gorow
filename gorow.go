@@ -935,9 +935,10 @@ func PhysGetPower(
 	pnowind := 500. / res2[1]
 
 	return []float64{
-		power,
-		ratio,
-		force,
-		pnowind,
-		math.NaN()}, nil
+		power,      // 0
+		ratio,      // 1
+		force,      // 2
+		pnowind,    // 3
+		math.NaN(), // 4
+	}, nil
 }

@@ -471,10 +471,12 @@ func OTWSetPower(
 
 				pwr := res[0]
 				frc := res[2]
+				nowindp := res[3]
 				if !powermeasured {
 					strokes[i].power = pwr
 					strokes[i].averageforce = frc / LbstoN
 				}
+				strokes[i].nowindpace = nowindp
 				strokes[i].modelpower = pwr
 				strokes[i].modelfavg = frc / LbstoN
 			}
