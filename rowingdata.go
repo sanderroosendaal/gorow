@@ -500,19 +500,29 @@ func OTWSetPower(
 // AveragePower calculates average power
 func AveragePower(strokes []StrokeRecord) float64 {
 	power := 0.0
+	var counter int
 	for _, stroke := range strokes {
-		power += stroke.power
+		if !math.IsNaN(stroke.power) {
+			power += stroke.power
+		} else {
+			counter++
+		}
 	}
-	return power / float64(len(strokes))
+	return power / float64(len(strokes)-counter)
 }
 
 // AverageHR calculates average heart rate
 func AverageHR(strokes []StrokeRecord) float64 {
 	hr := 0.0
+	var counter int
 	for _, stroke := range strokes {
-		hr += stroke.hr
+		if !math.IsNaN(stroke.hr) {
+			hr += stroke.hr
+		} else {
+			counter++
+		}
 	}
-	return hr / float64(len(strokes))
+	return hr / float64(len(strokes)-counter)
 }
 
 func geodistance(
@@ -564,10 +574,15 @@ func geodistance(
 // AverageSPM calculates average SPM
 func AverageSPM(strokes []StrokeRecord) float64 {
 	spm := 0.0
+	var counter int
 	for _, stroke := range strokes {
-		spm += stroke.spm
+		if !math.IsNaN(stroke.spm) {
+			spm += stroke.spm
+		} else {
+			counter++
+		}
 	}
-	return spm / float64(len(strokes))
+	return spm / float64(len(strokes)-counter)
 }
 
 // AddBearing returns a stroke set with bearing
