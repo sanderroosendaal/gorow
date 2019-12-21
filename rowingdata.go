@@ -209,8 +209,9 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 }
 
 // ReadCSV reads rowing data into data frame
+// from CSV file or gzipped CSV file with extension .csv.gz
 func ReadCSV(f string) ([]StrokeRecord, error) {
-	// check if gzip
+	// get extension
 	ext := filepath.Ext(f)
 
 	csvFile, err := os.Open(f)
