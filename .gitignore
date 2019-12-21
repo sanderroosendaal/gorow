@@ -1,3 +1,14 @@
+# Ignore everything
+*
+# Unignore everything with extensions
+!*.*
+# Unignore all dirs
+!*/
+!.gitignore
+
+#Ignore exe
+*.exe
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -14,3 +25,22 @@
 
 # output of profiling tool
 *.prof
+
+
+
+# This list created with
+# find . -executable -type f >>.gitignore
+./out.csv
+./gorow.test
+./.git/hooks/pre-commit.sample
+./.git/hooks/pre-push.sample
+./.git/hooks/pre-rebase.sample
+./.git/hooks/applypatch-msg.sample
+./.git/hooks/pre-applypatch.sample
+./.git/hooks/update.sample
+./.git/hooks/prepare-commit-msg.sample
+./.git/hooks/fsmonitor-watchman.sample
+./.git/hooks/pre-receive.sample
+./.git/hooks/post-update.sample
+./.git/hooks/commit-msg.sample
+./.git/hooks/pre-merge-commit.sample
