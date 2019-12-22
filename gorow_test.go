@@ -140,6 +140,9 @@ func TestOTWSetPower(t *testing.T) {
 		"http://localhost:8000/rowers/record-progress/testprogress/",
 		false, true,
 	)
+	if err != nil {
+		fmt.Printf("smoothnowindpace gave error: %v", err.Error())
+	}
 	fmt.Printf("After: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 }
 

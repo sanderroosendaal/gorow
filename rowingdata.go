@@ -495,7 +495,24 @@ func OTWSetPower(
 	if len(progressurl) > 0 {
 		done <- struct{}{}
 	}
+	err := smoothnowindpace(strokes, 3)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func averagenowindpace(strokes []StrokeRecord) float64 {
+	p := 0.0
+	var counter int
+	for _, stroke := range strokes {
+		if !math.IsNaN(stroke.nowindpace) {
+			p += stroke.nowindpace
+		} else {
+			counter++
+		}
+	}
+	return p / float64(len(strokes)-counter)
 }
 
 // AveragePower calculates average power
