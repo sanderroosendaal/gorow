@@ -754,6 +754,9 @@ func ConstantVeloFast(
 	windv float64,
 	dowind bool,
 ) ([]float64, error) {
+	if velo < 2.5 || crew.Tempo < 10 {
+		return []float64{50, velo, 0.5, 0, 0.7}, nil
+	}
 
 	F, err := LinSpace(Fmin, Fmax, aantal)
 	if err != nil {
@@ -927,6 +930,17 @@ func PhysGetPower(
 	force := res[0]
 	power := res[3]
 	ratio := res[2]
+
+	if velowater < 2.5 || rower.Tempo < 10 {
+		pnowind := velo
+		return []float64{
+			power,
+			ratio,
+			force,
+			pnowind,
+			math.NaN(),
+		}, nil
+	}
 
 	res2, err := ConstantWattFast(power, rower, rigging, 0.03, 5, 5, 50, 600, 5, 0, true, 15)
 	if err != nil {
