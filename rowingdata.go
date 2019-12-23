@@ -376,6 +376,9 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 			if row.velo == 0 && row.pace != 0 {
 				row.velo = 500. / row.pace
 			}
+			if row.workperstroke == 0 && row.power != 0 && row.spm != 0 {
+				row.workperstroke = 60. * row.power / row.spm
+			}
 			rows = append(rows, row)
 		}
 	}

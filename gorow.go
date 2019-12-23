@@ -965,8 +965,23 @@ func smoothnowindpace(strokes []StrokeRecord, windowsize int) error {
 			strokes[i].nowindpace = cma
 			continue
 		}
-		cma = (3.*cma - strokes[i-windowsize].nowindpace + record.nowindpace) / float64(windowsize)
+		cma = (float64(windowsize)*cma - strokes[i-windowsize].nowindpace + record.nowindpace) / float64(windowsize)
 		strokes[i].nowindpace = cma
 	}
 	return nil
+}
+
+func rolling(data []float64, windowsize int) ([]float64, error) {
+	cma := 0.0
+	out := make([]float64, len(data))
+	for i, value := range data {
+		if i < windowsize {
+			cma = (float64(i)*cma + value) / (float64(i) + 1)
+			out[i] = cma
+		} else {
+			cma = (float64(windowsize)*cma - data[i-windowsize] + value) / float64(windowsize)
+			out[i] = cma
+		}
+	}
+	return out, nil
 }

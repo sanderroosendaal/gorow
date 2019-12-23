@@ -78,3 +78,25 @@ func srinterpol2(x []float64, y []float64, target float64) float64 {
 
 	return newx[minindex]
 }
+
+// X must be monotonously increasing
+func linearize(X []float64, Y []float64, X2 []float64) ([]float64, error) {
+	newy := make([]float64, len(X2))
+	for i, xpos := range X2 {
+		for j := 0; j < len(X)-1; j++ {
+			if X[j] <= xpos && X[j+1] > xpos {
+				frac := (xpos - X[j]) / (X[j+1] - X[j])
+				newy[i] = Y[j] + frac*(Y[j+1]-Y[j])
+			}
+		}
+	}
+	return newy, nil
+}
+
+func mean(X []float64) float64 {
+	mn := 0.0
+	for _, value := range X {
+		mn += value
+	}
+	return mn / float64(len(X))
+}

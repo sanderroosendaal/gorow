@@ -120,6 +120,28 @@ func TestCSVReaderWriter(t *testing.T) {
 	}
 }
 
+func TestMetrics(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+		"testdata.csv",
+		240.0,
+		"male",
+		167, 195, 45,
+	)
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics gave an error")
+	}
+
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{5.49, 145.58, 14.8, 9.97, 3.71, 414}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i]) {
+			t.Errorf("Function WorkoutMetrics, %d, got %f, wanted %f", i, got[i], want[i])
+		}
+	}
+}
+
 func TestOTWSetPower(t *testing.T) {
 
 	// 1x
