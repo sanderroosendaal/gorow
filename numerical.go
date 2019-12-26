@@ -79,7 +79,7 @@ func srinterpol2(x []float64, y []float64, target float64) float64 {
 	return newx[minindex]
 }
 
-// X must be monotonously increasing
+// X must be monotonously increasing and X2 higher frequency than X
 func linearize(X []float64, Y []float64, X2 []float64) ([]float64, error) {
 	newy := make([]float64, len(X2))
 	for i, xpos := range X2 {
@@ -93,10 +93,17 @@ func linearize(X []float64, Y []float64, X2 []float64) ([]float64, error) {
 	return newy, nil
 }
 
-func mean(X []float64) float64 {
-	mn := 0.0
-	for _, value := range X {
-		mn += value
+func rolling(data []float64, windowsize int) ([]float64, error) {
+	cma := 0.0
+	out := make([]float64, len(data))
+	for i, value := range data {
+		if i < windowsize {
+			cma = (float64(i)*cma + value) / (float64(i) + 1)
+			out[i] = cma
+		} else {
+			cma = (float64(windowsize)*cma - data[i-windowsize] + value) / float64(windowsize)
+			out[i] = cma
+		}
 	}
-	return mn / float64(len(X))
+	return out, nil
 }

@@ -3,6 +3,8 @@ package gorow
 import (
 	"errors"
 	"math"
+
+	"gonum.org/v1/gonum/stat"
 )
 
 // WorkoutMetrics calculates workout level metrics (TSS, TRIMP and more)
@@ -20,7 +22,7 @@ func WorkoutMetrics(
 	nrstrokes := len(strokes)
 
 	duration := strokes[nrstrokes-1].timestamp - strokes[0].timestamp
-	time, _ := LinSpace(0, duration, int(duration))
+	time, _ := LinSpace(0, float64(int(duration)), int(duration)+1)
 
 	origpower := make([]float64, len(strokes))
 	origtime := make([]float64, len(strokes))
@@ -69,12 +71,12 @@ func WorkoutMetrics(
 		power4[i] = power[i] * power[i] * power[i] * power[i]
 	}
 
-	pwr4mean := mean(power4)
+	pwr4mean := stat.Mean(power4, nil)
 
 	if pwr4mean > 0 {
 		normp = math.Pow(pwr4mean, 0.25)
 	} else {
-		normp = mean(power)
+		normp = stat.Mean(power, nil)
 	}
 
 	intensityfactor := normp / ftp
@@ -108,8 +110,8 @@ func WorkoutMetrics(
 		w4[i] = math.Pow(wps[i], pp)
 		v4[i] = math.Pow(velo[i], pp)
 	}
-	w4mean := mean(w4)
-	v4mean := mean(v4)
+	w4mean := stat.Mean(w4, nil)
+	v4mean := stat.Mean(v4, nil)
 	normw = math.Pow(w4mean, 1./pp)
 	normv = math.Pow(v4mean, 1./pp)
 

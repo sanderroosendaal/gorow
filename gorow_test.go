@@ -12,7 +12,7 @@ import (
 const tolerance = 0.000001
 const relativetolerance = 0.05
 
-func GetTolerance(got float64, want float64) bool {
+func GetTolerance(got float64, want float64, relativetolerance float64) bool {
 	if want == 0.0 {
 		if got == want {
 			return true
@@ -37,7 +37,7 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 	}
 
 	for i := range want {
-		if !GetTolerance(got[i], want[i]) {
+		if !GetTolerance(got[i], want[i], relativetolerance) {
 			t.Errorf("Function %s, element %d, expected %f, got %f",
 				name, i, want[i], got[i])
 		}
@@ -123,9 +123,9 @@ func TestCSVReaderWriter(t *testing.T) {
 func TestMetrics(t *testing.T) {
 	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
 		"testdata.csv",
-		240.0,
+		200.0,
 		"male",
-		167, 195, 45,
+		167, 185, 54,
 	)
 
 	if err != nil {
@@ -133,10 +133,10 @@ func TestMetrics(t *testing.T) {
 	}
 
 	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{5.49, 145.58, 14.8, 9.97, 3.71, 414}
+	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346}
 
 	for i, value := range got {
-		if !GetTolerance(value, want[i]) {
+		if !GetTolerance(value, want[i], relativetolerance) {
 			t.Errorf("Function WorkoutMetrics, %d, got %f, wanted %f", i, got[i], want[i])
 		}
 	}
@@ -576,7 +576,7 @@ func TestBladeForce(t *testing.T) {
 	}
 
 	for i := 0; i < len(want); i++ {
-		if !GetTolerance(got[i], want[i]) {
+		if !GetTolerance(got[i], want[i], relativetolerance) {
 			t.Errorf("Function BladeForce, element %d, expected %f, got %f",
 				i, want[i], got[i])
 		}
