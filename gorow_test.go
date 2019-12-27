@@ -142,6 +142,30 @@ func TestMetrics(t *testing.T) {
 	}
 }
 
+func TestTailWind(t *testing.T) {
+	want := 0.10260604299770072
+	got := tailwind(340, 0.3, 230, 0)
+	if !GetTolerance(want, got, 0.001) {
+		t.Errorf("Function Tailwind, got %f, wanted %f", got, want)
+	}
+}
+
+func TestGeoDistance(t *testing.T) {
+	lat1 := 49.2387198
+	lon1 := 16.5140534
+	lat2 := 49.2387182
+	lon2 := 16.514050199999996
+
+	_, bearing := geodistance(lat1, lon1, lat2, lon2)
+
+	wantbearing := 232.55
+
+	if !GetTolerance(bearing, wantbearing, 0.001) {
+		t.Errorf("Function geodistance gave bearing %f, wanted %f", bearing, wantbearing)
+	}
+
+}
+
 func TestOTWSetPower(t *testing.T) {
 
 	// 1x
@@ -154,6 +178,22 @@ func TestOTWSetPower(t *testing.T) {
 	}
 	strokes = strokes[100:120]
 	AddBearing(strokes)
+
+	wantslice := []float64{
+		160.677160,
+		135.033001,
+		94.236924,
+		79.676226,
+		95.165019,
+		87.488895,
+	}
+
+	for i, want := range wantslice {
+		if !GetTolerance(strokes[i].bearing, want, 0.0001) {
+			t.Errorf("Bearing %d, got %f, wanted %f", i, strokes[i].bearing, want)
+		}
+	}
+
 	AddStream(strokes, 0, "f")
 	AddWind(strokes, 0, 0, "m")
 	fmt.Printf("Before: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))

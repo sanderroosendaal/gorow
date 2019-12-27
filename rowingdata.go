@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/VividCortex/ewma"
 	"github.com/fatih/structs"
 )
 
@@ -576,14 +577,18 @@ func geodistance(
 	dlat := lat2 - lat1
 
 	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1)*math.Cos(lat2)*math.Sin(dlon/2)*math.Sin(dlon/2)
-	c := 2 * math.Atan(math.Sqrt(1-a)/math.Sqrt(a))
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	distance := R * c
 
 	x := math.Sin(lon2-lon1) * math.Cos(lat2)
 	y := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
 
-	tc1 := math.Atan(y / x)
+	tc1 := math.Atan2(x, y)
+
+	if tc1 < 0 {
+		tc1 += 2 * pi
+	}
 
 	tc1 = math.Mod(tc1, 2*pi)
 
@@ -609,6 +614,9 @@ func AverageSPM(strokes []StrokeRecord) float64 {
 // AddBearing returns a stroke set with bearing
 func AddBearing(strokes []StrokeRecord) {
 
+	e := ewma.NewMovingAverage(20)
+	e1 := ewma.NewMovingAverage()
+
 	for i := 0; i < len(strokes)-1; i++ {
 		long1 := strokes[i].longitude
 		lat1 := strokes[i].latitude
@@ -616,7 +624,13 @@ func AddBearing(strokes []StrokeRecord) {
 		lat2 := strokes[i+1].latitude
 
 		_, bearing := geodistance(lat1, long1, lat2, long2)
-		strokes[i].bearing = bearing
+		e.Add(bearing)
+		e1.Add(bearing)
+		if i < 20 {
+			strokes[i].bearing = e1.Value()
+		} else {
+			strokes[i].bearing = e.Value()
+		}
 	}
 }
 
