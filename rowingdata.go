@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/VividCortex/ewma"
 	"github.com/fatih/structs"
 )
 
@@ -614,9 +613,6 @@ func AverageSPM(strokes []StrokeRecord) float64 {
 // AddBearing returns a stroke set with bearing
 func AddBearing(strokes []StrokeRecord) {
 
-	e := ewma.NewMovingAverage(20)
-	e1 := ewma.NewMovingAverage()
-
 	for i := 0; i < len(strokes)-1; i++ {
 		long1 := strokes[i].longitude
 		lat1 := strokes[i].latitude
@@ -624,14 +620,11 @@ func AddBearing(strokes []StrokeRecord) {
 		lat2 := strokes[i+1].latitude
 
 		_, bearing := geodistance(lat1, long1, lat2, long2)
-		e.Add(bearing)
-		e1.Add(bearing)
-		if i < 20 {
-			strokes[i].bearing = e1.Value()
-		} else {
-			strokes[i].bearing = e.Value()
-		}
+
+		strokes[i].bearing = bearing
+
 	}
+
 }
 
 // AddStream adds river stream
