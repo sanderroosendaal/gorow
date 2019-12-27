@@ -120,6 +120,85 @@ func TestCSVReaderWriter(t *testing.T) {
 	}
 }
 
+func TestReverse(t *testing.T) {
+	in := []float64{1, 2, 3, 4}
+	want := []float64{4, 3, 2, 1}
+	got := reverseslice(in)
+	for i := range got {
+		if !GetTolerance(got[i], want[i], 0.0001) {
+			t.Errorf("Reverse %d, got %v, wanted %v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestEWMA(t *testing.T) {
+	want := []float64{
+		1.000000,
+		1.666667,
+		2.428571,
+		3.266667,
+		4.266667,
+	}
+
+	in := []float64{
+		1, 2, 3, 4, 5,
+	}
+
+	got, _ := ewmovingaverage(in, 3)
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], 0.001) {
+			t.Errorf("EWMA item %d, got %f, wanted %f", i, value, want[i])
+		}
+	}
+
+}
+
+func TestEWMARight(t *testing.T) {
+	want := []float64{
+		1.733333,
+		2.571429,
+		3.333333,
+		4.0,
+	}
+
+	in := []float64{
+		1, 2, 3, 4,
+	}
+
+	got, _ := ewmovingaverageright(in, 3)
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], 0.001) {
+			t.Errorf("EWMA item %d, got %f, wanted %f", i, value, want[i])
+		}
+	}
+
+}
+
+func TestEWMABoth(t *testing.T) {
+	want := []float64{
+		1.366667,
+		2.2,
+		3,
+		3.8,
+		4.633333,
+	}
+
+	in := []float64{
+		1, 2, 3, 4, 5,
+	}
+
+	got, _ := ewmovingaverageboth(in, 3)
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], 0.001) {
+			t.Errorf("EWMA item %d, got %f, wanted %f", i, value, want[i])
+		}
+	}
+
+}
+
 func TestMetrics(t *testing.T) {
 	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
 		"testdata.csv",

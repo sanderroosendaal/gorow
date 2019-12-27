@@ -8,6 +8,68 @@ import (
 	"github.com/sgreben/piecewiselinear"
 )
 
+func reverseslice(in []float64) []float64 {
+	out := make([]float64, len(in))
+
+	for i, value := range in {
+		out[len(in)-i-1] = value
+	}
+
+	return out
+}
+
+func ewmovingaverage(in []float64, span uint) ([]float64, error) {
+	var out1 = make([]float64, len(in))
+
+	alfa := 2 / (1 + float64(span))
+
+	for i := range in {
+		if i < int(span) {
+			beta := 1.0
+			sumweights := 0.0
+			total := 0.0
+			for j := 0; j <= i; j++ {
+				total += beta * in[i-j]
+				sumweights += beta
+				beta *= (1 - alfa)
+			}
+			out1[i] = total / sumweights
+			continue
+		}
+		beta := 1.0
+		sumweights := 0.0
+		total := 0.0
+		for j := 0; j <= int(span); j++ {
+			total += beta * in[i-j]
+			sumweights += beta
+			beta *= (1 - alfa)
+		}
+		out1[i] = total / sumweights
+	}
+	return out1, nil
+}
+
+func ewmovingaverageright(in []float64, span uint) ([]float64, error) {
+	in2 := reverseslice(in)
+	out, err := ewmovingaverage(in2, span)
+	return reverseslice(out), err
+}
+
+func ewmovingaverageboth(in []float64, span uint) ([]float64, error) {
+	out1, err := ewmovingaverage(in, span)
+	if err != nil {
+		return out1, err
+	}
+	out2, err := ewmovingaverageright(in, span)
+	if err != nil {
+		return out2, err
+	}
+	for i := range out1 {
+		out1[i] = (out1[i] + out2[i]) / 2.
+	}
+	return out1, nil
+}
+
 func cumsum(x []float64, m float64) []float64 {
 	var y = make([]float64, len(x))
 	for i := 1; i < len(x); i++ {
