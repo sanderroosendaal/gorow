@@ -12,7 +12,7 @@ import (
 const tolerance = 0.000001
 const relativetolerance = 0.05
 
-func GetTolerance(got float64, want float64) bool {
+func GetTolerance(got float64, want float64, relativetolerance float64) bool {
 	if want == 0.0 {
 		if got == want {
 			return true
@@ -37,7 +37,7 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 	}
 
 	for i := range want {
-		if !GetTolerance(got[i], want[i]) {
+		if !GetTolerance(got[i], want[i], relativetolerance) {
 			t.Errorf("Function %s, element %d, expected %f, got %f",
 				name, i, want[i], got[i])
 		}
@@ -120,6 +120,131 @@ func TestCSVReaderWriter(t *testing.T) {
 	}
 }
 
+func TestReverse(t *testing.T) {
+	in := []float64{1, 2, 3, 4}
+	want := []float64{4, 3, 2, 1}
+	got := reverseslice(in)
+	for i := range got {
+		if !GetTolerance(got[i], want[i], 0.0001) {
+			t.Errorf("Reverse %d, got %v, wanted %v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestEWMA(t *testing.T) {
+	want := []float64{
+		1.000000,
+		1.666667,
+		2.428571,
+		3.266667,
+		4.266667,
+	}
+
+	in := []float64{
+		1, 2, 3, 4, 5,
+	}
+
+	got, _ := ewmovingaverage(in, 3)
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], 0.001) {
+			t.Errorf("EWMA item %d, got %f, wanted %f", i, value, want[i])
+		}
+	}
+
+}
+
+func TestEWMARight(t *testing.T) {
+	want := []float64{
+		1.733333,
+		2.571429,
+		3.333333,
+		4.0,
+	}
+
+	in := []float64{
+		1, 2, 3, 4,
+	}
+
+	got, _ := ewmovingaverageright(in, 3)
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], 0.001) {
+			t.Errorf("EWMA item %d, got %f, wanted %f", i, value, want[i])
+		}
+	}
+
+}
+
+func TestEWMABoth(t *testing.T) {
+	want := []float64{
+		1.366667,
+		2.2,
+		3,
+		3.8,
+		4.633333,
+	}
+
+	in := []float64{
+		1, 2, 3, 4, 5,
+	}
+
+	got, _ := ewmovingaverageboth(in, 3)
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], 0.001) {
+			t.Errorf("EWMA item %d, got %f, wanted %f", i, value, want[i])
+		}
+	}
+
+}
+
+func TestMetrics(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+		"testdata.csv",
+		200.0,
+		"male",
+		167, 185, 54,
+	)
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics gave an error")
+	}
+
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics, %d, got %f, wanted %f", i, got[i], want[i])
+		}
+	}
+}
+
+func TestTailWind(t *testing.T) {
+	want := 0.10260604299770072
+	got := tailwind(340, 0.3, 230, 0)
+	if !GetTolerance(want, got, 0.001) {
+		t.Errorf("Function Tailwind, got %f, wanted %f", got, want)
+	}
+}
+
+func TestGeoDistance(t *testing.T) {
+	lat1 := 49.2387198
+	lon1 := 16.5140534
+	lat2 := 49.2387182
+	lon2 := 16.514050199999996
+
+	_, bearing := geodistance(lat1, lon1, lat2, lon2)
+
+	wantbearing := 232.55
+
+	if !GetTolerance(bearing, wantbearing, 0.001) {
+		t.Errorf("Function geodistance gave bearing %f, wanted %f", bearing, wantbearing)
+	}
+
+}
+
 func TestOTWSetPower(t *testing.T) {
 
 	// 1x
@@ -132,12 +257,33 @@ func TestOTWSetPower(t *testing.T) {
 	}
 	strokes = strokes[100:120]
 	AddBearing(strokes)
+	/*
+		wantslice := []float64{
+			160.677160,
+			135.033001,
+			94.236924,
+			79.676226,
+			95.165019,
+			87.488895,
+		}
+
+		for i, want := range wantslice {
+			if !GetTolerance(strokes[i].bearing, want, 0.0001) {
+				t.Errorf("Bearing %d, got %f, wanted %f", i, strokes[i].bearing, want)
+			}
+		}
+	*/
+	AddStream(strokes, 0, "f")
+	AddWind(strokes, 0, 0, "m")
 	fmt.Printf("Before: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 	OTWSetPower(
 		strokes, c, rg, "maherio",
 		"http://localhost:8000/rowers/record-progress/testprogress/",
 		false, true,
 	)
+	if err != nil {
+		fmt.Printf("smoothnowindpace gave error: %v", err.Error())
+	}
 	fmt.Printf("After: %.2f, %.2f, %.2f \n", AveragePower(strokes), AverageSPM(strokes), AverageHR(strokes))
 }
 
@@ -549,7 +695,7 @@ func TestBladeForce(t *testing.T) {
 	}
 
 	for i := 0; i < len(want); i++ {
-		if !GetTolerance(got[i], want[i]) {
+		if !GetTolerance(got[i], want[i], relativetolerance) {
 			t.Errorf("Function BladeForce, element %d, expected %f, got %f",
 				i, want[i], got[i])
 		}

@@ -61,6 +61,9 @@ type StrokeRecord struct {
 	modelpower         float64 `rowingdata:"power (model)"`
 	modelfavg          float64 `rowingdata:"averageforce (model)"`
 	modeldrivelength   float64 `rowingdata:"drivelength (model)"`
+	vwind              float64 `rowingdata:"vwind"`
+	winddirection      float64 `rowingdata:"winddirection"`
+	vstream            float64 `rowingdata:"vstream"`
 }
 
 // GetField gets field value as float from StrokeRecord
@@ -206,8 +209,9 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 }
 
 // ReadCSV reads rowing data into data frame
+// from CSV file or gzipped CSV file with extension .csv.gz
 func ReadCSV(f string) ([]StrokeRecord, error) {
-	// check if gzip
+	// get extension
 	ext := filepath.Ext(f)
 
 	csvFile, err := os.Open(f)
@@ -355,12 +359,25 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 					if f, err := getfloatrecord(record[i]); err == nil {
 						row.modeldrivelength = f
 					}
-
-					//	   DragFactor
+				case "vwind":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.vwind = f
+					}
+				case "winddirection":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.winddirection = f
+					}
+				case "vstream":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.vstream = f
+					}
 				}
 			}
 			if row.velo == 0 && row.pace != 0 {
 				row.velo = 500. / row.pace
+			}
+			if row.workperstroke == 0 && row.power != 0 && row.spm != 0 {
+				row.workperstroke = 60. * row.power / row.spm
 			}
 			rows = append(rows, row)
 		}
@@ -447,7 +464,11 @@ func OTWSetPower(
 			semaphoreChan <- struct{}{}
 
 			c.Tempo = stroke.spm
-			res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
+			res, err := PhysGetPower(
+				stroke.velo, c, rg, stroke.bearing,
+				stroke.vwind, stroke.winddirection, stroke.vstream,
+			)
+			//res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
 			if err == nil {
 
 				pwr := res[0]
@@ -477,25 +498,52 @@ func OTWSetPower(
 	if len(progressurl) > 0 {
 		done <- struct{}{}
 	}
+	err := smoothnowindpace(strokes, 3)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func averagenowindpace(strokes []StrokeRecord) float64 {
+	p := 0.0
+	var counter int
+	for _, stroke := range strokes {
+		if !math.IsNaN(stroke.nowindpace) {
+			p += stroke.nowindpace
+		} else {
+			counter++
+		}
+	}
+	return p / float64(len(strokes)-counter)
 }
 
 // AveragePower calculates average power
 func AveragePower(strokes []StrokeRecord) float64 {
 	power := 0.0
+	var counter int
 	for _, stroke := range strokes {
-		power += stroke.power
+		if !math.IsNaN(stroke.power) {
+			power += stroke.power
+		} else {
+			counter++
+		}
 	}
-	return power / float64(len(strokes))
+	return power / float64(len(strokes)-counter)
 }
 
 // AverageHR calculates average heart rate
 func AverageHR(strokes []StrokeRecord) float64 {
 	hr := 0.0
+	var counter int
 	for _, stroke := range strokes {
-		hr += stroke.hr
+		if !math.IsNaN(stroke.hr) {
+			hr += stroke.hr
+		} else {
+			counter++
+		}
 	}
-	return hr / float64(len(strokes))
+	return hr / float64(len(strokes)-counter)
 }
 
 func geodistance(
@@ -528,14 +576,18 @@ func geodistance(
 	dlat := lat2 - lat1
 
 	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1)*math.Cos(lat2)*math.Sin(dlon/2)*math.Sin(dlon/2)
-	c := 2 * math.Atan(math.Sqrt(1-a)/math.Sqrt(a))
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	distance := R * c
 
 	x := math.Sin(lon2-lon1) * math.Cos(lat2)
 	y := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
 
-	tc1 := math.Atan(y / x)
+	tc1 := math.Atan2(x, y)
+
+	if tc1 < 0 {
+		tc1 += 2 * pi
+	}
 
 	tc1 = math.Mod(tc1, 2*pi)
 
@@ -547,14 +599,22 @@ func geodistance(
 // AverageSPM calculates average SPM
 func AverageSPM(strokes []StrokeRecord) float64 {
 	spm := 0.0
+	var counter int
 	for _, stroke := range strokes {
-		spm += stroke.spm
+		if !math.IsNaN(stroke.spm) {
+			spm += stroke.spm
+		} else {
+			counter++
+		}
 	}
-	return spm / float64(len(strokes))
+	return spm / float64(len(strokes)-counter)
 }
 
 // AddBearing returns a stroke set with bearing
 func AddBearing(strokes []StrokeRecord) {
+
+	unfilteredbearing := make([]float64, len(strokes))
+
 	for i := 0; i < len(strokes)-1; i++ {
 		long1 := strokes[i].longitude
 		lat1 := strokes[i].latitude
@@ -562,6 +622,59 @@ func AddBearing(strokes []StrokeRecord) {
 		lat2 := strokes[i+1].latitude
 
 		_, bearing := geodistance(lat1, long1, lat2, long2)
-		strokes[i].bearing = bearing
+
+		unfilteredbearing[i] = bearing
+
+	}
+
+	filteredbearing, _ := ewmovingaverageboth(unfilteredbearing, 20)
+
+	for i := range strokes {
+		strokes[i].bearing = filteredbearing[i]
+	}
+
+}
+
+// AddStream adds river stream
+func AddStream(strokes []StrokeRecord, vstream float64, unit string) {
+	// foot / second
+	if unit == "f" {
+		vstream *= 0.3048
+	}
+	// knots
+	if unit == "k" {
+		vstream /= 1.994
+	}
+	// pace difference equivalent (approx)
+	if unit == "p" {
+		vstream *= 8 / 500
+	}
+	// now vstream is in m/s
+	for _, stroke := range strokes {
+		stroke.vstream = vstream
+	}
+}
+
+// AddWind adds wind speed and direction
+func AddWind(strokes []StrokeRecord, vwind float64, winddirection float64, unit string) {
+	// beaufort
+	if unit == "b" {
+		vwind = 0.837 * math.Sqrt(vwind*vwind*vwind)
+	}
+	// knots
+	if unit == "k" {
+		vwind *= 1.994
+	}
+	// km/h
+	if unit == "kmh" {
+		vwind /= 3.6
+	}
+	// mph
+	if unit == "mph" {
+		vwind *= 0.44704
+	}
+	for _, stroke := range strokes {
+		stroke.vwind = vwind
+		stroke.winddirection = winddirection
 	}
 }

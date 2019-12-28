@@ -8,6 +8,68 @@ import (
 	"github.com/sgreben/piecewiselinear"
 )
 
+func reverseslice(in []float64) []float64 {
+	out := make([]float64, len(in))
+
+	for i, value := range in {
+		out[len(in)-i-1] = value
+	}
+
+	return out
+}
+
+func ewmovingaverage(in []float64, span uint) ([]float64, error) {
+	var out1 = make([]float64, len(in))
+
+	alfa := 2 / (1 + float64(span))
+
+	for i := range in {
+		if i < int(span) {
+			beta := 1.0
+			sumweights := 0.0
+			total := 0.0
+			for j := 0; j <= i; j++ {
+				total += beta * in[i-j]
+				sumweights += beta
+				beta *= (1 - alfa)
+			}
+			out1[i] = total / sumweights
+			continue
+		}
+		beta := 1.0
+		sumweights := 0.0
+		total := 0.0
+		for j := 0; j <= int(span); j++ {
+			total += beta * in[i-j]
+			sumweights += beta
+			beta *= (1 - alfa)
+		}
+		out1[i] = total / sumweights
+	}
+	return out1, nil
+}
+
+func ewmovingaverageright(in []float64, span uint) ([]float64, error) {
+	in2 := reverseslice(in)
+	out, err := ewmovingaverage(in2, span)
+	return reverseslice(out), err
+}
+
+func ewmovingaverageboth(in []float64, span uint) ([]float64, error) {
+	out1, err := ewmovingaverage(in, span)
+	if err != nil {
+		return out1, err
+	}
+	out2, err := ewmovingaverageright(in, span)
+	if err != nil {
+		return out2, err
+	}
+	for i := range out1 {
+		out1[i] = (out1[i] + out2[i]) / 2.
+	}
+	return out1, nil
+}
+
 func cumsum(x []float64, m float64) []float64 {
 	var y = make([]float64, len(x))
 	for i := 1; i < len(x); i++ {
@@ -77,4 +139,33 @@ func srinterpol2(x []float64, y []float64, target float64) float64 {
 	}
 
 	return newx[minindex]
+}
+
+// X must be monotonously increasing and X2 higher frequency than X
+func linearize(X []float64, Y []float64, X2 []float64) ([]float64, error) {
+	newy := make([]float64, len(X2))
+	for i, xpos := range X2 {
+		for j := 0; j < len(X)-1; j++ {
+			if X[j] <= xpos && X[j+1] > xpos {
+				frac := (xpos - X[j]) / (X[j+1] - X[j])
+				newy[i] = Y[j] + frac*(Y[j+1]-Y[j])
+			}
+		}
+	}
+	return newy, nil
+}
+
+func rolling(data []float64, windowsize int) ([]float64, error) {
+	cma := 0.0
+	out := make([]float64, len(data))
+	for i, value := range data {
+		if i < windowsize {
+			cma = (float64(i)*cma + value) / (float64(i) + 1)
+			out[i] = cma
+		} else {
+			cma = (float64(windowsize)*cma - data[i-windowsize] + value) / float64(windowsize)
+			out[i] = cma
+		}
+	}
+	return out, nil
 }
