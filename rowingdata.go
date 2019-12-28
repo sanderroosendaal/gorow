@@ -613,6 +613,8 @@ func AverageSPM(strokes []StrokeRecord) float64 {
 // AddBearing returns a stroke set with bearing
 func AddBearing(strokes []StrokeRecord) {
 
+	unfilteredbearing := make([]float64, len(strokes))
+
 	for i := 0; i < len(strokes)-1; i++ {
 		long1 := strokes[i].longitude
 		lat1 := strokes[i].latitude
@@ -621,8 +623,14 @@ func AddBearing(strokes []StrokeRecord) {
 
 		_, bearing := geodistance(lat1, long1, lat2, long2)
 
-		strokes[i].bearing = bearing
+		unfilteredbearing[i] = bearing
 
+	}
+
+	filteredbearing, _ := ewmovingaverageboth(unfilteredbearing, 20)
+
+	for i := range strokes {
+		strokes[i].bearing = filteredbearing[i]
 	}
 
 }
