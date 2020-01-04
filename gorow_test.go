@@ -80,6 +80,14 @@ func TestCSVReaderGZip(t *testing.T) {
 	}
 }
 
+func TestParquetWriter(t *testing.T) {
+	strokes, err := ReadCSV("testdata.csv")
+	_, err = WriteParquet(strokes, "testdata.parquet", true, true)
+	if err != nil {
+		t.Errorf("WriteParquet error: %v", err.Error())
+	}
+}
+
 func TestCSVReaderWriter(t *testing.T) {
 	strokes, err := ReadCSV("testdata.csv")
 	if err != nil {

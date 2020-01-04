@@ -19,6 +19,9 @@ import (
 	"time"
 
 	"github.com/fatih/structs"
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/parquet"
+	"github.com/xitongsys/parquet-go/writer"
 )
 
 // LbstoN convert lbs of force to Newton
@@ -34,36 +37,36 @@ func reverseMap(m map[string]string) map[string]string {
 
 // StrokeRecord sort of dataframe
 type StrokeRecord struct {
-	timestamp          float64 `rowingdata:"TimeStamp (sec)"`
-	distance           float64 `rowingdata:" Horizontal (meters)"`
-	spm                float64 `rowingdata:" Cadence (stokes/min)"`
-	hr                 float64 `rowingdata:" HRCur (bpm)"`
-	pace               float64 `rowingdata:" Stroke500mPace (sec/500m)"`
-	power              float64 `rowingdata:" Power (watts)"`
-	drivelength        float64 `rowingdata:" DriveLength (meters)"`
-	strokedistance     float64 `rowingdata:" StrokeDistance (meters)"`
-	drivetime          float64 `rowingdata:" drivetime"`
-	dragfactor         int     `rowingdata:" DragFactor"`
-	strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)"`
-	workperstroke      float64 `rowingdata:" WorkPerStroke (joules)"`
-	averageforce       float64 `rowingdata:" AverageDriveForce (lbs)"`
-	peakforce          float64 `rowingdata:" PeakDriveForce (lbs)"`
-	velo               float64 `rowingdata:" Speed (m/sec)"`
-	lapnr              int     `rowingdata:" lapIdx"`
-	intervaltime       float64 `rowingdata:" ElapsedTime (sec)"`
-	calories           float64 `rowingdata:" Calories (kCal)"`
-	workoutstate       int     `rowingdata:" WorkoutState"`
-	latitude           float64 `rowingdata:" latitude"`
-	longitude          float64 `rowingdata:" longitude"`
-	bearing            float64 `rowingdata:" bearing"`
-	nowindpace         float64 `rowingdata:"nowindpace"`
-	equivergpower      float64 `rowingdata:"Equiv erg Power"`
-	modelpower         float64 `rowingdata:"power (model)"`
-	modelfavg          float64 `rowingdata:"averageforce (model)"`
-	modeldrivelength   float64 `rowingdata:"drivelength (model)"`
-	vwind              float64 `rowingdata:"vwind"`
-	winddirection      float64 `rowingdata:"winddirection"`
-	vstream            float64 `rowingdata:"vstream"`
+	timestamp          float64 `rowingdata:"TimeStamp (sec)" parquet:"name=timestamp, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	distance           float64 `rowingdata:" Horizontal (meters)" parquet:"name=distance, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	spm                float64 `rowingdata:" Cadence (stokes/min)" parquet:"name=spm, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	hr                 float64 `rowingdata:" HRCur (bpm)" parquet:"name=hr, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	pace               float64 `rowingdata:" Stroke500mPace (sec/500m)" parquet:"name=pace, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	power              float64 `rowingdata:" Power (watts)" parquet:"name=power, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	drivelength        float64 `rowingdata:" DriveLength (meters)" parquet:"name=drivelength, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	strokedistance     float64 `rowingdata:" StrokeDistance (meters)" parquet:"name=strokedistance, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	drivetime          float64 `rowingdata:" drivetime" parquet:"name=drivetime, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	dragfactor         int     `rowingdata:" DragFactor" parquet:"name=dragfactor, type=INT64, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)" parquet:"name=strokerecoverytime, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	workperstroke      float64 `rowingdata:" WorkPerStroke (joules)" parquet:"name=workperstroke, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	averageforce       float64 `rowingdata:" AverageDriveForce (lbs)" parquet:"name=averageforce, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	peakforce          float64 `rowingdata:" PeakDriveForce (lbs)" parquet:"name=peakforce, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	velo               float64 `rowingdata:" Speed (m/sec)" parquet:"name=velo, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	lapnr              int     `rowingdata:" lapIdx" parquet:"name=lapnr, type=INT64, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	intervaltime       float64 `rowingdata:" ElapsedTime (sec)" parquet:"name=intervaltime, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	calories           float64 `rowingdata:" Calories (kCal)" parquet:"name=calories, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	workoutstate       int     `rowingdata:" WorkoutState" parquet:"name=workoutstate, type=INT64, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	latitude           float64 `rowingdata:" latitude" parquet:"name=latitude, type=DOUBLE, encoding=PLAIN_DICTIONARY, encoding=PLAIN_DICTIONARY"`
+	longitude          float64 `rowingdata:" longitude" parquet:"name=longitude, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	bearing            float64 `rowingdata:" bearing" parquet:"name=bearing, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	nowindpace         float64 `rowingdata:"nowindpace" parquet:"name=nowindpace, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	equivergpower      float64 `rowingdata:"Equiv erg Power" parquet:"name=equivergpower, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	modelpower         float64 `rowingdata:"power (model)" parquet:"name=modelpower, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	modelfavg          float64 `rowingdata:"averageforce (model)" parquet:"name=modelfavg, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	modeldrivelength   float64 `rowingdata:"drivelength (model)" parquet:"name=modeldrivelength, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	vwind              float64 `rowingdata:"vwind" parquet:"name=vwind, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	winddirection      float64 `rowingdata:"winddirection" parquet:"name=winddirection, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	vstream            float64 `rowingdata:"vstream" parquet:"name=vstream, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
 }
 
 // GetField gets field value as float from StrokeRecord
@@ -162,6 +165,39 @@ func gzipper(f string) (ok bool, err error) {
 	}
 
 	return true, nil
+}
+
+// WriteParquet writes data to Parquet
+func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok bool, err error) {
+	strokesp := topointers(strokes)
+	fw, err := local.NewLocalFileWriter(f)
+	if err != nil {
+		return false, err
+	}
+	//parameters: writer, type of struct, size
+	pw, err := writer.NewParquetWriter(fw, new(StrokeRecord), 4)
+	if err != nil {
+		return false, err
+	}
+	//compression type
+	pw.CompressionType = parquet.CompressionCodec_GZIP
+	defer fw.Close()
+	for _, d := range strokesp {
+		if err = pw.Write(&d); err != nil {
+			return false, err
+		}
+	}
+	if err = pw.WriteStop(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func topointers(strokes []StrokeRecord) (strokesp []*StrokeRecord) {
+	for _, stroke := range strokes {
+		strokesp = append(strokesp, &stroke)
+	}
+	return strokesp
 }
 
 // WriteCSV writes data to file
