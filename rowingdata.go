@@ -198,7 +198,10 @@ func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok
 		return false, err
 	}
 	//compression type
-	pw.CompressionType = parquet.CompressionCodec_GZIP
+	pw.CompressionType = parquet.CompressionCodec_UNCOMPRESSED
+	if gz {
+		pw.CompressionType = parquet.CompressionCodec_GZIP
+	}
 	// pw.RowGroupSize = 128 * 1024 * 1024 //128M
 
 	for _, d := range strokes {
@@ -210,13 +213,6 @@ func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok
 		return false, err
 	}
 	return true, nil
-}
-
-func topointers(strokes []StrokeRecord) (strokesp []*StrokeRecord) {
-	for _, stroke := range strokes {
-		strokesp = append(strokesp, &stroke)
-	}
-	return strokesp
 }
 
 // WriteCSV writes data to file
