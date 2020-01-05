@@ -21,7 +21,7 @@ func WorkoutMetrics(
 	}
 	nrstrokes := len(strokes)
 
-	duration := strokes[nrstrokes-1].timestamp - strokes[0].timestamp
+	duration := strokes[nrstrokes-1].Timestamp - strokes[0].Timestamp
 	time, _ := LinSpace(0, float64(int(duration)), int(duration)+1)
 
 	origpower := make([]float64, len(strokes))
@@ -30,11 +30,11 @@ func WorkoutMetrics(
 	origwps := make([]float64, len(strokes))
 	origvelo := make([]float64, len(strokes))
 	for i := range strokes {
-		origpower[i] = strokes[i].power
-		origtime[i] = strokes[i].timestamp - strokes[0].timestamp
-		orighr[i] = strokes[i].hr
-		origvelo[i] = strokes[i].velo
-		origwps[i] = strokes[i].workperstroke
+		origpower[i] = strokes[i].Power
+		origtime[i] = strokes[i].Timestamp - strokes[0].Timestamp
+		orighr[i] = strokes[i].Hr
+		origvelo[i] = strokes[i].Velo
+		origwps[i] = strokes[i].Workperstroke
 	}
 
 	power, err := linearize(origtime, origpower, time)

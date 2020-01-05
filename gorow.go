@@ -961,12 +961,12 @@ func smoothnowindpace(strokes []StrokeRecord, windowsize int) error {
 	cma := 0.0
 	for i, record := range strokes {
 		if i < windowsize {
-			cma = (float64(i)*cma + record.nowindpace) / (float64(i) + 1)
-			strokes[i].nowindpace = cma
+			cma = (float64(i)*cma + record.Nowindpace) / (float64(i) + 1)
+			strokes[i].Nowindpace = cma
 			continue
 		}
-		cma = (float64(windowsize)*cma - strokes[i-windowsize].nowindpace + record.nowindpace) / float64(windowsize)
-		strokes[i].nowindpace = cma
+		cma = (float64(windowsize)*cma - strokes[i-windowsize].Nowindpace + record.Nowindpace) / float64(windowsize)
+		strokes[i].Nowindpace = cma
 	}
 	return nil
 }
