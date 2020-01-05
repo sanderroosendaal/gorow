@@ -57,7 +57,7 @@ func TestGetField(t *testing.T) {
 }
 
 func TestCSVReader(t *testing.T) {
-	strokes, err := ReadCSV("testdata.csv")
+	strokes, err := ReadCSV("testdata/testdata.csv")
 	if err != nil {
 		t.Errorf("CSVReader returned an error: %v", err.Error())
 	}
@@ -69,7 +69,7 @@ func TestCSVReader(t *testing.T) {
 }
 
 func TestCSVReaderGZip(t *testing.T) {
-	strokes, err := ReadCSV("otw.csv.gz")
+	strokes, err := ReadCSV("testdata/otw.csv.gz")
 	if err != nil {
 		t.Errorf("CSVReader returned an error: %v", err.Error())
 	}
@@ -80,30 +80,14 @@ func TestCSVReaderGZip(t *testing.T) {
 	}
 }
 
-func TestParquetWriter(t *testing.T) {
-	strokes, err := ReadCSV("testdata.csv")
-	_, err = WriteParquet(strokes, "testdata.parquet", true, true)
+func TestParquetReaderWriter(t *testing.T) {
+	strokes, err := ReadCSV("testdata/testdata.csv")
+	_, err = WriteParquet(strokes, "testdata/testdata.parquet", true, true)
 	if err != nil {
 		t.Errorf("WriteParquet error: %v", err.Error())
 	}
-}
 
-func TestCSVReaderWriter(t *testing.T) {
-	strokes, err := ReadCSV("testdata.csv")
-	if err != nil {
-		t.Errorf("CSVReader returned an error: %v", err.Error())
-	}
-	want := 191
-	got := len(strokes)
-	if want != got {
-		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
-	}
-	ok, err := WriteCSV(strokes, "out2.csv", true, false)
-	if !ok {
-		t.Errorf("CSVWriter: %v", err)
-	}
-
-	strokes2, err := ReadCSV("out2.csv")
+	strokes2, err := ReadCSV("testdata/testdata.parquet")
 	wantf := AveragePower(strokes)
 	gotf := AveragePower(strokes2)
 
@@ -112,13 +96,39 @@ func TestCSVReaderWriter(t *testing.T) {
 			gotf, wantf)
 	}
 
-	err = os.Remove("out2.csv.gz")
-	ok, err = WriteCSV(strokes, "out2.csv.gz", true, true)
+}
+
+func TestCSVReaderWriter(t *testing.T) {
+	strokes, err := ReadCSV("testdata/testdata.csv")
+	if err != nil {
+		t.Errorf("CSVReader returned an error: %v", err.Error())
+	}
+	want := 191
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+	ok, err := WriteCSV(strokes, "testdata/out2.csv", true, false)
+	if !ok {
+		t.Errorf("CSVWriter: %v", err)
+	}
+
+	strokes2, err := ReadCSV("testdata/out2.csv")
+	wantf := AveragePower(strokes)
+	gotf := AveragePower(strokes2)
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("WriteCSV equation gave incorrect result writing Power. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+
+	err = os.Remove("testdata/out2.csv.gz")
+	ok, err = WriteCSV(strokes, "testdata/out2.csv.gz", true, true)
 	if !ok {
 		t.Errorf("CSVWriter (gzip): %v", err)
 	}
 
-	strokes, err = ReadCSV("out2.csv.gz")
+	strokes, err = ReadCSV("testdata/out2.csv.gz")
 	wantf = AveragePower(strokes)
 	gotf = AveragePower(strokes2)
 
@@ -209,7 +219,7 @@ func TestEWMABoth(t *testing.T) {
 
 func TestMetrics(t *testing.T) {
 	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
-		"testdata.csv",
+		"testdata/testdata.csv",
 		200.0,
 		"male",
 		167, 185, 54,
@@ -259,7 +269,7 @@ func TestOTWSetPower(t *testing.T) {
 	var rg = NewRig(0.9, 14, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 0.98)
 	var c = NewCrew(80, 1.4, 30, 0.5, SinusRecovery{}, Trapezium{X1: 0.15, X2: 0.5, H1: 1.0, H2: 0.9}, 1000., 1000.)
 
-	strokes, err := ReadCSV("otw.csv")
+	strokes, err := ReadCSV("testdata/otw.csv")
 	if err != nil {
 		t.Errorf("CSVReader returned an error: %v", err.Error())
 	}

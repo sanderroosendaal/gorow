@@ -251,6 +251,12 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 
 }
 
+// ReadParquet reads rowing data into data frame
+// from Parquet file
+func ReadParquet(f string) ([]StrokeRecord, error) {
+
+}
+
 // ReadCSV reads rowing data into data frame
 // from CSV file or gzipped CSV file with extension .csv.gz
 func ReadCSV(f string) ([]StrokeRecord, error) {
