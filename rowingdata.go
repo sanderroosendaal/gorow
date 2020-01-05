@@ -169,6 +169,10 @@ func gzipper(f string) (ok bool, err error) {
 
 // WriteParquet writes data to Parquet
 func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok bool, err error) {
+	if exists(f) && !overwrite {
+		err := errors.New("File exists and overwrite was set to false")
+		return false, err
+	}
 	strokesp := topointers(strokes)
 	fw, err := local.NewLocalFileWriter(f)
 	if err != nil {
@@ -180,7 +184,10 @@ func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok
 		return false, err
 	}
 	//compression type
-	pw.CompressionType = parquet.CompressionCodec_GZIP
+	pw.CompressionType = parquet.CompressionCodec_UNCOMPRESSED
+	if gz {
+		pw.CompressionType = parquet.CompressionCodec_GZIP
+	}
 	defer fw.Close()
 	for _, d := range strokesp {
 		if err = pw.Write(&d); err != nil {
