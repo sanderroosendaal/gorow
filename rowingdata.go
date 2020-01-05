@@ -21,6 +21,7 @@ import (
 	"github.com/fatih/structs"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
+	"github.com/xitongsys/parquet-go/reader"
 	"github.com/xitongsys/parquet-go/writer"
 )
 
@@ -175,6 +176,7 @@ func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok
 	}
 	strokesp := topointers(strokes)
 	fw, err := local.NewLocalFileWriter(f)
+	defer fw.Close()
 	if err != nil {
 		return false, err
 	}
@@ -188,7 +190,7 @@ func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok
 	if gz {
 		pw.CompressionType = parquet.CompressionCodec_GZIP
 	}
-	defer fw.Close()
+
 	for _, d := range strokesp {
 		if err = pw.Write(&d); err != nil {
 			return false, err
@@ -254,7 +256,29 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 // ReadParquet reads rowing data into data frame
 // from Parquet file
 func ReadParquet(f string) ([]StrokeRecord, error) {
+	fr, err := local.NewLocalFileReader(f)
+	defer fr.Close()
+	if err != nil {
+		return nil, err
+	}
+	pr, err := reader.NewParquetReader(fr, nil, 1)
+	if err != nil {
+		return nil, err
+	}
+	num := int(pr.GetNumRows())
+	outp := make([]*StrokeRecord, num)
 
+	if err := pr.Read(&outp); err != nil {
+		return nil, err
+	}
+
+	pr.ReadStop()
+
+	out := make([]StrokeRecord, num)
+	for i := range out {
+		out[i] = *outp[i]
+	}
+	return out, nil
 }
 
 // ReadCSV reads rowing data into data frame

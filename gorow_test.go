@@ -87,7 +87,10 @@ func TestParquetReaderWriter(t *testing.T) {
 		t.Errorf("WriteParquet error: %v", err.Error())
 	}
 
-	strokes2, err := ReadCSV("testdata/testdata.parquet")
+	strokes2, err := ReadParquet("testdata/testdata.parquet")
+	if err != nil {
+		t.Errorf("ReadParquet error: %v", err.Error())
+	}
 	wantf := AveragePower(strokes)
 	gotf := AveragePower(strokes2)
 
