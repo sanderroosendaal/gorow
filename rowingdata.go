@@ -38,36 +38,36 @@ func reverseMap(m map[string]string) map[string]string {
 
 // StrokeRecord sort of dataframe
 type StrokeRecord struct {
-	Timestamp          float64 `rowingdata:"TimeStamp (sec)" parquet:"name=timestamp, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	Timestamp          float64 `rowingdata:"TimeStamp (sec)" parquet:"name=time, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
 	Distance           float64 `rowingdata:" Horizontal (meters)" parquet:"name=distance, type=DOUBLE"`
 	Spm                float64 `rowingdata:" Cadence (stokes/min)" parquet:"name=spm, type=DOUBLE"`
 	Hr                 float64 `rowingdata:" HRCur (bpm)" parquet:"name=hr, type=DOUBLE"`
 	Pace               float64 `rowingdata:" Stroke500mPace (sec/500m)" parquet:"name=pace, type=DOUBLE"`
 	Power              float64 `rowingdata:" Power (watts)" parquet:"name=power, type=DOUBLE"`
 	Drivelength        float64 `rowingdata:" DriveLength (meters)" parquet:"name=drivelength, type=DOUBLE"`
-	Strokedistance     float64 `rowingdata:" StrokeDistance (meters)" parquet:"name=strokedistance, type=DOUBLE"`
-	Drivetime          float64 `rowingdata:" drivetime" parquet:"name=drivetime, type=DOUBLE"`
-	Dragfactor         int64   `rowingdata:" DragFactor" parquet:"name=dragfactor, type=INT64"`
-	Strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)" parquet:"name=strokerecoverytime, type=DOUBLE"`
-	Workperstroke      float64 `rowingdata:" WorkPerStroke (joules)" parquet:"name=workperstroke, type=DOUBLE"`
+	Strokedistance     float64 `rowingdata:" StrokeDistance (meters)" parquet:"name=distanceperstroke, type=DOUBLE"`
+	Drivetime          float64 `rowingdata:" drivetime"`
+	Dragfactor         int64   `rowingdata:" DragFactor"`
+	Strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)"`
+	Workperstroke      float64 `rowingdata:" WorkPerStroke (joules)" parquet:"name=driveenergy, type=DOUBLE"`
 	Averageforce       float64 `rowingdata:" AverageDriveForce (lbs)" parquet:"name=averageforce, type=DOUBLE"`
 	Peakforce          float64 `rowingdata:" PeakDriveForce (lbs)" parquet:"name=peakforce, type=DOUBLE"`
 	Velo               float64 `rowingdata:" Speed (m/sec)" parquet:"name=velo, type=DOUBLE"`
-	Lapnr              int64   `rowingdata:" lapIdx" parquet:"name=lapnr, type=INT64"`
-	Intervaltime       float64 `rowingdata:" ElapsedTime (sec)" parquet:"name=intervaltime, type=DOUBLE"`
-	Calories           float64 `rowingdata:" Calories (kCal)" parquet:"name=calories, type=DOUBLE"`
-	Workoutstate       int64   `rowingdata:" WorkoutState" parquet:"name=workoutstate, type=INT64"`
-	Latitude           float64 `rowingdata:" latitude" parquet:"name=latitude, type=DOUBLE"`
-	Longitude          float64 `rowingdata:" longitude" parquet:"name=longitude, type=DOUBLE"`
-	Bearing            float64 `rowingdata:" bearing" parquet:"name=bearing, type=DOUBLE"`
+	Lapnr              int64   `rowingdata:" lapIdx"`
+	Intervaltime       float64 `rowingdata:" ElapsedTime (sec)"`
+	Calories           float64 `rowingdata:" Calories (kCal)"`
+	Workoutstate       float64 `rowingdata:" WorkoutState" parquet:"name=workoutstate, type=DOUBLE"`
+	Latitude           float64 `rowingdata:" latitude"`
+	Longitude          float64 `rowingdata:" longitude"`
+	Bearing            float64 `rowingdata:" bearing"`
 	Nowindpace         float64 `rowingdata:"nowindpace" parquet:"name=nowindpace, type=DOUBLE"`
 	Equivergpower      float64 `rowingdata:"Equiv erg Power" parquet:"name=equivergpower, type=DOUBLE"`
-	Modelpower         float64 `rowingdata:"power (model)" parquet:"name=modelpower, type=DOUBLE"`
-	Modelfavg          float64 `rowingdata:"averageforce (model)" parquet:"name=modelfavg, type=DOUBLE"`
-	Modeldrivelength   float64 `rowingdata:"drivelength (model)" parquet:"name=modeldrivelength, type=DOUBLE"`
-	Vwind              float64 `rowingdata:"vwind" parquet:"name=vwind, type=DOUBLE"`
-	Winddirection      float64 `rowingdata:"winddirection" parquet:"name=winddirection, type=DOUBLE"`
-	Vstream            float64 `rowingdata:"vstream" parquet:"name=vstream, type=DOUBLE"`
+	Modelpower         float64 `rowingdata:"power (model)"`
+	Modelfavg          float64 `rowingdata:"averageforce (model)"`
+	Modeldrivelength   float64 `rowingdata:"drivelength (model)"`
+	Vwind              float64 `rowingdata:"vwind"`
+	Winddirection      float64 `rowingdata:"winddirection"`
+	Vstream            float64 `rowingdata:"vstream"`
 }
 
 // GetField gets field value as float from StrokeRecord

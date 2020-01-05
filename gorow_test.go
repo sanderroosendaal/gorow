@@ -99,20 +99,20 @@ func TestParquetReaderWriter(t *testing.T) {
 		t.Errorf("WriteCSV equation gave incorrect result writing Power. Got %f, wanted %f\n",
 			gotf, wantf)
 	}
-	/*
-		strokes3, err := ReadParquet("testdata/strokedata_2.parquet.gz/part.0.parquet")
-		if err != nil {
-			t.Errorf("ReadParquet error: %v", err.Error())
-		}
 
-		wantf = 0.0
-		gotf = AveragePower(strokes3)
+	strokes3, err := ReadParquet("testdata/strokedata_2.parquet.gz/part.0.parquet")
+	if err != nil {
+		t.Errorf("ReadParquet error: %v", err.Error())
+	}
 
-		if math.Abs(gotf-wantf) > tolerance {
-			t.Errorf("WriteCSV equation gave incorrect result writing Power. Got %f, wanted %f\n",
-				gotf, wantf)
-		}
-	*/
+	wantf = 0.0
+	gotf = AveragePower(strokes3)
+
+	if math.Abs(gotf-wantf) > tolerance {
+		t.Errorf("WriteCSV equation gave incorrect result writing Power. Got %f, wanted %f\n",
+			gotf, wantf)
+	}
+
 }
 
 func TestCSVReaderWriter(t *testing.T) {
