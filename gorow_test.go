@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"runtime"
 	"os"
 	"path/filepath"
 	"testing"
@@ -116,6 +117,7 @@ func TestParquetReaderWriter(t *testing.T) {
 }
 
 func TestCSVReaderWriter(t *testing.T) {
+	runtime.GOMAXPROCS(1)
 	strokes, err := ReadCSV("testdata/testdata.csv")
 	if err != nil {
 		t.Errorf("CSVReader returned an error: %v", err.Error())
