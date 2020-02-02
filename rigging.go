@@ -49,7 +49,7 @@ func (rg *Rig) bladearea() float64 {
 }
 
 func (rg *Rig) dcatch() float64 {
-	return (rg.Lin * math.Sin(rg.CatchAngle))
+	return (rg.Lin * Sine(rg.CatchAngle))
 }
 
 func (rg *Rig) oarangle(x float64) float64 {

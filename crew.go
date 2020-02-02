@@ -52,7 +52,7 @@ type StrongMiddle struct {
 }
 
 func (s StrongMiddle) forceprofile(favg, x float64) float64 {
-	var f = (s.Frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + (1.-s.Frac)*favg
+	var f = (s.Frac * favg * math.Pi * Sine(math.Pi*x) / 2.) + (1.-s.Frac)*favg
 	return f
 }
 
@@ -62,7 +62,7 @@ type StrongMiddle2 struct {
 }
 
 func (s StrongMiddle2) forceprofile(favg, x float64) float64 {
-	var f = (s.Frac * favg * math.Pi * math.Sin(math.Pi*x) / 2.) + 2*(1.-s.Frac)*favg*(1-x)
+	var f = (s.Frac * favg * math.Pi * Sine(math.Pi*x) / 2.) + 2*(1.-s.Frac)*favg*(1-x)
 	return f
 }
 
@@ -158,7 +158,7 @@ type SinusRecovery struct {
 
 func (r SinusRecovery) vhandle(vavg, trecovery, time float64) float64 {
 	vhandmax := -math.Pi * vavg / 2.
-	vhand := vhandmax * math.Sin(math.Pi*time/trecovery)
+	vhand := vhandmax * Sine(math.Pi*time/trecovery)
 	return vhand
 }
 
@@ -177,7 +177,7 @@ func (r SinusRecovery2) vhandle(vavg, trecovery, time float64) float64 {
 	w1 := math.Pi / r.P1
 	w := w1 / trecovery
 	vhandmax := w * r.Strokelength / (1 - math.Cos(w*trecovery))
-	vhand := -vhandmax * math.Sin(w*time)
+	vhand := -vhandmax * Sine(w*time)
 	return vhand
 }
 
@@ -198,7 +198,7 @@ type CosinusRecovery struct {
 func (r CosinusRecovery) vhandle(vavg, trecovery, time float64) float64 {
 	w1 := math.Pi / (2 * r.P1)
 	w := w1 / trecovery
-	vhandmax := w * r.Strokelength / (math.Sin(w * trecovery))
+	vhandmax := w * r.Strokelength / (Sine(w * trecovery))
 	vhand := -vhandmax * math.Cos(w*time)
 	return vhand
 }
@@ -206,8 +206,8 @@ func (r CosinusRecovery) vhandle(vavg, trecovery, time float64) float64 {
 func (r CosinusRecovery) dxhandle(vavg, trecovery, time float64) float64 {
 	w1 := math.Pi / (2 * r.P1)
 	w := w1 / trecovery
-	vhandmax := w * r.Strokelength / (math.Sin(w * trecovery))
-	dx := vhandmax * math.Sin(w*time) / (r.Strokelength)
+	vhandmax := w * r.Strokelength / (Sine(w * trecovery))
+	dx := vhandmax * Sine(w*time) / (r.Strokelength)
 	return dx
 }
 

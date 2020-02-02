@@ -55,6 +55,15 @@ func TestSine(t *testing.T) {
 	}
 }
 
+func TestCoSine(t *testing.T) {
+	x := math.Pi * 0.1
+	got := Cosine(x)
+	want := math.Cos(x)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Cosine approximation is wrong")
+	}
+}
+
 func TestGetField(t *testing.T) {
 	stroke := StrokeRecord{Spm: 22}
 	got, _ := stroke.GetField("Spm")

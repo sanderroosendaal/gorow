@@ -642,13 +642,13 @@ func geodistance(
 	dlon := lon2 - lon1
 	dlat := lat2 - lat1
 
-	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1)*math.Cos(lat2)*math.Sin(dlon/2)*math.Sin(dlon/2)
+	a := Sine(dlat/2)*Sine(dlat/2) + math.Cos(lat1)*math.Cos(lat2)*Sine(dlon/2)*Sine(dlon/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	distance := R * c
 
-	x := math.Sin(lon2-lon1) * math.Cos(lat2)
-	y := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
+	x := Sine(lon2-lon1) * math.Cos(lat2)
+	y := math.Cos(lat1)*Sine(lat2) - Sine(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
 
 	tc1 := math.Atan2(x, y)
 

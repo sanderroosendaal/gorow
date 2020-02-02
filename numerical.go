@@ -172,6 +172,7 @@ func rolling(data []float64, windowsize int) ([]float64, error) {
 	return out, nil
 }
 
+// Sine calculates a Chebyshev approximation of sin(x)
 func Sine(x float64) float64 {
 	a0 := -0.10132118         // x
 	a1 := 0.0066208798        // x^3
@@ -191,5 +192,16 @@ func Sine(x float64) float64 {
 
 	r := (x - math.Pi) * (x + math.Pi) * p1 * x
 
+	return r
+}
+
+// Cosine uses Sine to give an approxmation of cos(x)
+func Cosine(x float64) float64 {
+	return Sine(0.5*math.Pi - x)
+}
+
+// Atan is Chebyshev approximation to atan(x)
+func Atan(x float64) float64 {
+	r := x / (1 + 0.28125*x*x)
 	return r
 }
