@@ -84,6 +84,12 @@ func srinterpol4(x []float64, y []float64, target float64) (float64, error) {
 	aantal := len(x)
 
 	for i := 0; i < aantal-1; i++ {
+		if y[i] == target {
+			return x[i], nil
+		}
+		if y[i+1] == target {
+			return x[i+1], nil
+		}
 		if (y[i+1]-target)*(y[i]-target) < 0 {
 			ratio := (target - y[i]) / (y[i+1] - y[i])
 			Xf := x[i] + ratio*(x[i+1]-x[i])
