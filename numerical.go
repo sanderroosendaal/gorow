@@ -1,6 +1,8 @@
 package gorow
 
 import (
+	"math"
+
 	"github.com/cnkei/gospline"
 	//	"github.com/pa-m/sklearn/interpolate"
 	"errors"
@@ -76,6 +78,19 @@ func cumsum(x []float64, m float64) []float64 {
 		y[i] = y[i-1] + m*x[i]
 	}
 	return y
+}
+
+func srinterpol4(x []float64, y []float64, target float64) (float64, error) {
+	aantal := len(x)
+
+	for i := 0; i < aantal-1; i++ {
+		if (y[i+1]-target)*(y[i]-target) < 0 {
+			ratio := (target - y[i]) / (y[i+1] - y[i])
+			Xf := x[i] + ratio*(x[i+1]-x[i])
+			return Xf, nil
+		}
+	}
+	return x[aantal-1], errors.New("target outside input range")
 }
 
 func srinterpol3(x []float64, y []float64, target float64) (float64, error) {
@@ -168,4 +183,62 @@ func rolling(data []float64, windowsize int) ([]float64, error) {
 		}
 	}
 	return out, nil
+}
+
+// Sine calculates a Chebyshev approximation of sin(x)
+func sine(x float64) float64 {
+	a0 := -0.10132118         // x
+	a1 := 0.0066208798        // x^3
+	a2 := -0.00017350505      // x^5
+	a3 := 0.0000025222919     // x^7
+	a4 := -0.000000023317787  // x^9
+	a5 := 0.00000000013291342 // x^11
+
+	x2 := x * x
+
+	p11 := a5
+	p9 := p11*x2 + a4
+	p7 := p9*x2 + a3
+	p5 := p7*x2 + a2
+	p3 := p5*x2 + a1
+	p1 := p3*x2 + a0
+
+	r := (x - math.Pi) * (x + math.Pi) * p1 * x
+
+	return r
+}
+
+// Cosine uses Sine to give an approxmation of cos(x)
+func cosine(x float64) float64 {
+	return sine(0.5*math.Pi - x)
+}
+
+// Atan is Chebyshev approximation to atan(x) (on -1,1)
+func xatan(x float64) float64 {
+	r := x / (1 + 0.28125*x*x)
+	return r
+}
+
+func satan(x float64) float64 {
+	const (
+		Morebits = 6.123233995736765886130e-17 // pi/2 = PIO2 + Morebits
+		Tan3pio8 = 2.41421356237309504880      // tan(3*pi/8)
+	)
+	if x < 0.66 {
+		return xatan(x)
+	}
+	if x > Tan3pio8 {
+		return math.Pi/2 + xatan(1/x) + Morebits
+	}
+	return math.Pi/2 + xatan((x-1)/x+1) + 0.5*Morebits
+}
+
+func atan(x float64) float64 {
+	if x == 0 {
+		return x
+	}
+	if x > 0 {
+		return satan(x)
+	}
+	return -satan(-x)
 }

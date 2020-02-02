@@ -19,6 +19,10 @@ import (
 	"time"
 
 	"github.com/fatih/structs"
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/parquet"
+	"github.com/xitongsys/parquet-go/reader"
+	"github.com/xitongsys/parquet-go/writer"
 )
 
 // LbstoN convert lbs of force to Newton
@@ -34,36 +38,36 @@ func reverseMap(m map[string]string) map[string]string {
 
 // StrokeRecord sort of dataframe
 type StrokeRecord struct {
-	timestamp          float64 `rowingdata:"TimeStamp (sec)"`
-	distance           float64 `rowingdata:" Horizontal (meters)"`
-	spm                float64 `rowingdata:" Cadence (stokes/min)"`
-	hr                 float64 `rowingdata:" HRCur (bpm)"`
-	pace               float64 `rowingdata:" Stroke500mPace (sec/500m)"`
-	power              float64 `rowingdata:" Power (watts)"`
-	drivelength        float64 `rowingdata:" DriveLength (meters)"`
-	strokedistance     float64 `rowingdata:" StrokeDistance (meters)"`
-	drivetime          float64 `rowingdata:" drivetime"`
-	dragfactor         int     `rowingdata:" DragFactor"`
-	strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)"`
-	workperstroke      float64 `rowingdata:" WorkPerStroke (joules)"`
-	averageforce       float64 `rowingdata:" AverageDriveForce (lbs)"`
-	peakforce          float64 `rowingdata:" PeakDriveForce (lbs)"`
-	velo               float64 `rowingdata:" Speed (m/sec)"`
-	lapnr              int     `rowingdata:" lapIdx"`
-	intervaltime       float64 `rowingdata:" ElapsedTime (sec)"`
-	calories           float64 `rowingdata:" Calories (kCal)"`
-	workoutstate       int     `rowingdata:" WorkoutState"`
-	latitude           float64 `rowingdata:" latitude"`
-	longitude          float64 `rowingdata:" longitude"`
-	bearing            float64 `rowingdata:" bearing"`
-	nowindpace         float64 `rowingdata:"nowindpace"`
-	equivergpower      float64 `rowingdata:"Equiv erg Power"`
-	modelpower         float64 `rowingdata:"power (model)"`
-	modelfavg          float64 `rowingdata:"averageforce (model)"`
-	modeldrivelength   float64 `rowingdata:"drivelength (model)"`
-	vwind              float64 `rowingdata:"vwind"`
-	winddirection      float64 `rowingdata:"winddirection"`
-	vstream            float64 `rowingdata:"vstream"`
+	Timestamp          float64 `rowingdata:"TimeStamp (sec)" parquet:"name=time, type=DOUBLE, encoding=PLAIN_DICTIONARY"`
+	Distance           float64 `rowingdata:" Horizontal (meters)" parquet:"name=distance, type=DOUBLE"`
+	Spm                float64 `rowingdata:" Cadence (stokes/min)" parquet:"name=spm, type=DOUBLE"`
+	Hr                 float64 `rowingdata:" HRCur (bpm)" parquet:"name=hr, type=DOUBLE"`
+	Pace               float64 `rowingdata:" Stroke500mPace (sec/500m)" parquet:"name=pace, type=DOUBLE"`
+	Power              float64 `rowingdata:" Power (watts)" parquet:"name=power, type=DOUBLE"`
+	Drivelength        float64 `rowingdata:" DriveLength (meters)" parquet:"name=drivelength, type=DOUBLE"`
+	Strokedistance     float64 `rowingdata:" StrokeDistance (meters)" parquet:"name=distanceperstroke, type=DOUBLE"`
+	Drivetime          float64 `rowingdata:" drivetime"`
+	Dragfactor         int64   `rowingdata:" DragFactor"`
+	Strokerecoverytime float64 `rowingdata:" StrokeRecoveryTime (ms)"`
+	Workperstroke      float64 `rowingdata:" WorkPerStroke (joules)" parquet:"name=driveenergy, type=DOUBLE"`
+	Averageforce       float64 `rowingdata:" AverageDriveForce (lbs)" parquet:"name=averageforce, type=DOUBLE"`
+	Peakforce          float64 `rowingdata:" PeakDriveForce (lbs)" parquet:"name=peakforce, type=DOUBLE"`
+	Velo               float64 `rowingdata:" Speed (m/sec)" parquet:"name=velo, type=DOUBLE"`
+	Lapnr              int64   `rowingdata:" lapIdx"`
+	Intervaltime       float64 `rowingdata:" ElapsedTime (sec)"`
+	Calories           float64 `rowingdata:" Calories (kCal)"`
+	Workoutstate       float64 `rowingdata:" WorkoutState" parquet:"name=workoutstate, type=DOUBLE"`
+	Latitude           float64 `rowingdata:" latitude"`
+	Longitude          float64 `rowingdata:" longitude"`
+	Bearing            float64 `rowingdata:" bearing"`
+	Nowindpace         float64 `rowingdata:"nowindpace" parquet:"name=nowindpace, type=DOUBLE"`
+	Equivergpower      float64 `rowingdata:"Equiv erg Power" parquet:"name=equivergpower, type=DOUBLE"`
+	Modelpower         float64 `rowingdata:"power (model)"`
+	Modelfavg          float64 `rowingdata:"averageforce (model)"`
+	Modeldrivelength   float64 `rowingdata:"drivelength (model)"`
+	Vwind              float64 `rowingdata:"vwind"`
+	Winddirection      float64 `rowingdata:"winddirection"`
+	Vstream            float64 `rowingdata:"vstream"`
 }
 
 // GetField gets field value as float from StrokeRecord
@@ -97,8 +101,9 @@ func getfloatrecord(s string) (float64, error) {
 	return strconv.ParseFloat(strings.TrimSpace(s), 64)
 }
 
-func getintrecord(s string) (int, error) {
-	return strconv.Atoi(strings.TrimSpace(s))
+func getintrecord(s string) (int64, error) {
+	res, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	return res, err
 }
 
 func exists(name string) bool {
@@ -164,6 +169,40 @@ func gzipper(f string) (ok bool, err error) {
 	return true, nil
 }
 
+// WriteParquet writes data to Parquet
+func WriteParquet(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok bool, err error) {
+	if exists(f) && !overwrite {
+		err := errors.New("File exists and overwrite was set to false")
+		return false, err
+	}
+	fw, err := local.NewLocalFileWriter(f)
+	defer fw.Close()
+	if err != nil {
+		return false, err
+	}
+	//parameters: writer, type of struct, size
+	pw, err := writer.NewParquetWriter(fw, new(StrokeRecord), 1)
+	if err != nil {
+		return false, err
+	}
+	//compression type
+	pw.CompressionType = parquet.CompressionCodec_UNCOMPRESSED
+	if gz {
+		pw.CompressionType = parquet.CompressionCodec_GZIP
+	}
+	// pw.RowGroupSize = 128 * 1024 * 1024 //128M
+
+	for _, d := range strokes {
+		if err = pw.Write(d); err != nil {
+			return false, err
+		}
+	}
+	if err = pw.WriteStop(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // WriteCSV writes data to file
 func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok bool, err error) {
 	if exists(f) && !overwrite {
@@ -206,6 +245,34 @@ func WriteCSV(strokes []StrokeRecord, f string, overwrite bool, gz bool) (ok boo
 
 	return csvwriter(records, f)
 
+}
+
+// ReadParquet reads rowing data into data frame
+// from Parquet file
+func ReadParquet(f string) ([]StrokeRecord, error) {
+	fr, err := local.NewLocalFileReader(f)
+	defer fr.Close()
+	if err != nil {
+		return nil, err
+	}
+	pr, err := reader.NewParquetReader(fr, new(StrokeRecord), 4)
+	if err != nil {
+		return nil, err
+	}
+	num := int(pr.GetNumRows())
+	outp := make([]*StrokeRecord, num)
+
+	if err := pr.Read(&outp); err != nil {
+		return nil, err
+	}
+
+	pr.ReadStop()
+
+	out := make([]StrokeRecord, num)
+	for i := range out {
+		out[i] = *outp[i]
+	}
+	return out, nil
 }
 
 // ReadCSV reads rowing data into data frame
@@ -253,131 +320,131 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 				switch header[i] {
 				case "TimeStamp (sec)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.timestamp = f
+						row.Timestamp = f
 					}
 				case " lapIdx":
 					if f, err := getintrecord(record[i]); err == nil {
-						row.lapnr = f
+						row.Lapnr = f
 					}
 				case " ElapsedTime (sec)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.intervaltime = f
+						row.Intervaltime = f
 					}
 				case " Horizontal (meters)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.distance = f
+						row.Distance = f
 					}
 				case " Stroke500mPace (sec/500m)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.pace = f
+						row.Pace = f
 					}
 				case " Cadence (stokes/min)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.spm = f
+						row.Spm = f
 					}
 				case " Cadence (strokes/min)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.spm = f
+						row.Spm = f
 					}
 				case " HRCur (bpm)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.hr = f
+						row.Hr = f
 					}
 				case " Power (watts)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.power = f
+						row.Power = f
 					}
 				case " Calories (kCal)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.calories = f
+						row.Calories = f
 					}
 				case " Speed (m/sec)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.velo = f
+						row.Velo = f
 					}
 				case " StrokeDistance (meters)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.strokedistance = f
+						row.Strokedistance = f
 					}
 				case " DriveLength (meters)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.drivelength = f
+						row.Drivelength = f
 					}
 				case " StrokeRecoveryTime (ms)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.strokerecoverytime = f
+						row.Strokerecoverytime = f
 					}
 				case " WorkPerStroke (joules)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.workperstroke = f
+						row.Workperstroke = f
 					}
 				case " AverageDriveForce (lbs)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.averageforce = f
+						row.Averageforce = f
 					}
 				case " AverageDriveForce (N)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.averageforce = f / LbstoN
+						row.Averageforce = f / LbstoN
 					}
 				case " PeakDriveForce (lbs)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.peakforce = f
+						row.Peakforce = f
 					}
 				case " PeakDriveForce (N)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.peakforce = f / LbstoN
+						row.Peakforce = f / LbstoN
 					}
 				case " DragFactor":
 					if f, err := getintrecord(record[i]); err == nil {
-						row.dragfactor = f
+						row.Dragfactor = f
 					}
 				case " latitude":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.latitude = f
+						row.Latitude = f
 					}
 				case " longitude":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.longitude = f
+						row.Longitude = f
 					}
-				case "nowindpace":
+				case "Nowindpace":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.nowindpace = f
+						row.Nowindpace = f
 					}
 				case "Equiv erg Power":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.equivergpower = f
+						row.Equivergpower = f
 					}
 				case "power (model)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.modelpower = f
+						row.Modelpower = f
 					}
 				case "averageforce (model)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.modelfavg = f
+						row.Modelfavg = f
 					}
 				case "drivelength (model)":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.modeldrivelength = f
+						row.Modeldrivelength = f
 					}
 				case "vwind":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.vwind = f
+						row.Vwind = f
 					}
 				case "winddirection":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.winddirection = f
+						row.Winddirection = f
 					}
 				case "vstream":
 					if f, err := getfloatrecord(record[i]); err == nil {
-						row.vstream = f
+						row.Vstream = f
 					}
 				}
 			}
-			if row.velo == 0 && row.pace != 0 {
-				row.velo = 500. / row.pace
+			if row.Velo == 0 && row.Pace != 0 {
+				row.Velo = 500. / row.Pace
 			}
-			if row.workperstroke == 0 && row.power != 0 && row.spm != 0 {
-				row.workperstroke = 60. * row.power / row.spm
+			if row.Workperstroke == 0 && row.Power != 0 && row.Spm != 0 {
+				row.Workperstroke = 60. * row.Power / row.Spm
 			}
 			rows = append(rows, row)
 		}
@@ -463,10 +530,10 @@ func OTWSetPower(
 			// which would make sense if the list is huge
 			semaphoreChan <- struct{}{}
 
-			c.Tempo = stroke.spm
+			c.Tempo = stroke.Spm
 			res, err := PhysGetPower(
-				stroke.velo, c, rg, stroke.bearing,
-				stroke.vwind, stroke.winddirection, stroke.vstream,
+				stroke.Velo, c, rg, stroke.Bearing,
+				stroke.Vwind, stroke.Winddirection, stroke.Vstream,
 			)
 			//res, err := PhysGetPower(stroke.velo, c, rg, 0, 0, 0, 0)
 			if err == nil {
@@ -475,12 +542,12 @@ func OTWSetPower(
 				frc := res[2]
 				nowindp := res[3]
 				if !powermeasured {
-					strokes[i].power = pwr
-					strokes[i].averageforce = frc / LbstoN
+					strokes[i].Power = pwr
+					strokes[i].Averageforce = frc / LbstoN
 				}
-				strokes[i].nowindpace = nowindp
-				strokes[i].modelpower = pwr
-				strokes[i].modelfavg = frc / LbstoN
+				strokes[i].Nowindpace = nowindp
+				strokes[i].Modelpower = pwr
+				strokes[i].Modelfavg = frc / LbstoN
 			}
 
 			// tell the wait group that we be done
@@ -505,12 +572,12 @@ func OTWSetPower(
 	return nil
 }
 
-func averagenowindpace(strokes []StrokeRecord) float64 {
+func averageNowindpace(strokes []StrokeRecord) float64 {
 	p := 0.0
 	var counter int
 	for _, stroke := range strokes {
-		if !math.IsNaN(stroke.nowindpace) {
-			p += stroke.nowindpace
+		if !math.IsNaN(stroke.Nowindpace) {
+			p += stroke.Nowindpace
 		} else {
 			counter++
 		}
@@ -523,8 +590,8 @@ func AveragePower(strokes []StrokeRecord) float64 {
 	power := 0.0
 	var counter int
 	for _, stroke := range strokes {
-		if !math.IsNaN(stroke.power) {
-			power += stroke.power
+		if !math.IsNaN(stroke.Power) {
+			power += stroke.Power
 		} else {
 			counter++
 		}
@@ -537,8 +604,8 @@ func AverageHR(strokes []StrokeRecord) float64 {
 	hr := 0.0
 	var counter int
 	for _, stroke := range strokes {
-		if !math.IsNaN(stroke.hr) {
-			hr += stroke.hr
+		if !math.IsNaN(stroke.Hr) {
+			hr += stroke.Hr
 		} else {
 			counter++
 		}
@@ -575,13 +642,13 @@ func geodistance(
 	dlon := lon2 - lon1
 	dlat := lat2 - lat1
 
-	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1)*math.Cos(lat2)*math.Sin(dlon/2)*math.Sin(dlon/2)
+	a := sine(dlat/2)*sine(dlat/2) + math.Cos(lat1)*math.Cos(lat2)*sine(dlon/2)*sine(dlon/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	distance := R * c
 
-	x := math.Sin(lon2-lon1) * math.Cos(lat2)
-	y := math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
+	x := sine(lon2-lon1) * math.Cos(lat2)
+	y := math.Cos(lat1)*sine(lat2) - sine(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
 
 	tc1 := math.Atan2(x, y)
 
@@ -601,8 +668,8 @@ func AverageSPM(strokes []StrokeRecord) float64 {
 	spm := 0.0
 	var counter int
 	for _, stroke := range strokes {
-		if !math.IsNaN(stroke.spm) {
-			spm += stroke.spm
+		if !math.IsNaN(stroke.Spm) {
+			spm += stroke.Spm
 		} else {
 			counter++
 		}
@@ -616,10 +683,10 @@ func AddBearing(strokes []StrokeRecord) {
 	unfilteredbearing := make([]float64, len(strokes))
 
 	for i := 0; i < len(strokes)-1; i++ {
-		long1 := strokes[i].longitude
-		lat1 := strokes[i].latitude
-		long2 := strokes[i+1].longitude
-		lat2 := strokes[i+1].latitude
+		long1 := strokes[i].Longitude
+		lat1 := strokes[i].Latitude
+		long2 := strokes[i+1].Longitude
+		lat2 := strokes[i+1].Latitude
 
 		_, bearing := geodistance(lat1, long1, lat2, long2)
 
@@ -630,7 +697,7 @@ func AddBearing(strokes []StrokeRecord) {
 	filteredbearing, _ := ewmovingaverageboth(unfilteredbearing, 20)
 
 	for i := range strokes {
-		strokes[i].bearing = filteredbearing[i]
+		strokes[i].Bearing = filteredbearing[i]
 	}
 
 }
@@ -651,7 +718,7 @@ func AddStream(strokes []StrokeRecord, vstream float64, unit string) {
 	}
 	// now vstream is in m/s
 	for _, stroke := range strokes {
-		stroke.vstream = vstream
+		stroke.Vstream = vstream
 	}
 }
 
@@ -674,7 +741,7 @@ func AddWind(strokes []StrokeRecord, vwind float64, winddirection float64, unit 
 		vwind *= 0.44704
 	}
 	for _, stroke := range strokes {
-		stroke.vwind = vwind
-		stroke.winddirection = winddirection
+		stroke.Vwind = vwind
+		stroke.Winddirection = winddirection
 	}
 }
