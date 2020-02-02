@@ -234,7 +234,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 	}
 
 	var u1v = make([]float64, N)
-	var up = vb * math.Sin(oarangle)
+	var up = vb * Sine(oarangle)
 	var av = make([]float64, N)
 	var FRv = make([]float64, N)
 
@@ -248,8 +248,8 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 		u1v[i] = u1
 		var u = math.Sqrt(u1*u1 + up*up) // fluid velocity
 		a = math.Atan(u1 / up)           // angle of attack
-		CD = 2 * CLmax * math.Sin(a) * math.Sin(a)
-		CL = CLmax * math.Sin(2*a)
+		CD = 2 * CLmax * Sine(a) * Sine(a)
+		CL = CLmax * Sine(2*a)
 
 		FL = 0.5 * CL * rho * area * u * u
 		FD = 0.5 * CD * rho * area * u * u
@@ -266,13 +266,13 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 
 	var vblade1 = phidot1 * lout
 	var u1 = vblade1 - vb*math.Cos(oarangle)
-	up = vb * math.Sin(oarangle)
+	up = vb * Sine(oarangle)
 
 	var u = math.Sqrt(u1*u1 + up*up) // fluid velocity
 	a = math.Atan(u1 / up)           // angle of attack
 
-	CD = 2 * CLmax * math.Sin(a) * math.Sin(a)
-	CL = CLmax * math.Sin(2.*a)
+	CD = 2 * CLmax * Sine(a) * Sine(a)
+	CL = CLmax * Sine(2.*a)
 
 	FL = 0.5 * CL * rho * area * u * u
 	FD = 0.5 * CD * rho * area * u * u
@@ -371,7 +371,7 @@ func EnergyBalance(
 	vb[0] = vb0
 	vc[0] = ((float64(Nrowers)*Mc+mb)*vs[0] - mb*vb[0]) / (float64(Nrowers) * Mc)
 	oarangle[0] = rigging.oarangle(0)
-	xblade[0] = -lout * math.Sin(oarangle[0])
+	xblade[0] = -lout * Sine(oarangle[0])
 
 	i := 1
 
