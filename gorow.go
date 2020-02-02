@@ -221,7 +221,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 	var CD float64
 	var a float64
 
-	var phidot0 = vb * math.Cos(oarangle) / lout
+	var phidot0 = vb * cosine(oarangle) / lout
 	phidot, err := LinSpace(phidot0, 2*math.Abs(phidot0), N)
 	if err != nil {
 		return nil, err
@@ -234,7 +234,7 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 	}
 
 	var u1v = make([]float64, N)
-	var up = vb * math.Sin(oarangle)
+	var up = vb * sine(oarangle)
 	var av = make([]float64, N)
 	var FRv = make([]float64, N)
 
@@ -244,17 +244,17 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 	for i := 0; i < N; i++ {
 		// go func(i int) {
 		// defer wg.Done()
-		var u1 = vblade[i] - vb*math.Cos(oarangle)
+		var u1 = vblade[i] - vb*cosine(oarangle)
 		u1v[i] = u1
 		var u = math.Sqrt(u1*u1 + up*up) // fluid velocity
-		a = math.Atan(u1 / up)           // angle of attack
-		CD = 2 * CLmax * math.Sin(a) * math.Sin(a)
-		CL = CLmax * math.Sin(2*a)
+		a = atan(u1 / up)                // angle of attack
+		CD = 2 * CLmax * sine(a) * sine(a)
+		CL = CLmax * sine(2*a)
 
 		FL = 0.5 * CL * rho * area * u * u
 		FD = 0.5 * CD * rho * area * u * u
 		FRv[i] = math.Sqrt(FL*FL + FD*FD)
-		// Fprop = FRv[i] * math.Cos(oarangle)
+		// Fprop = FRv[i] * cosine(oarangle)
 		av[i] = a
 
 		// } (i)
@@ -262,22 +262,22 @@ func BladeForce(oarangle float64, rigging *Rig, vb, fblade float64) ([]float64, 
 
 	// wg.Wait()
 
-	phidot1, _ = srinterpol3(phidot, FRv, fblade)
+	phidot1, _ = srinterpol4(phidot, FRv, fblade)
 
 	var vblade1 = phidot1 * lout
-	var u1 = vblade1 - vb*math.Cos(oarangle)
-	up = vb * math.Sin(oarangle)
+	var u1 = vblade1 - vb*cosine(oarangle)
+	up = vb * sine(oarangle)
 
 	var u = math.Sqrt(u1*u1 + up*up) // fluid velocity
-	a = math.Atan(u1 / up)           // angle of attack
+	a = atan(u1 / up)                // angle of attack
 
-	CD = 2 * CLmax * math.Sin(a) * math.Sin(a)
-	CL = CLmax * math.Sin(2.*a)
+	CD = 2 * CLmax * sine(a) * sine(a)
+	CL = CLmax * sine(2.*a)
 
 	FL = 0.5 * CL * rho * area * u * u
 	FD = 0.5 * CD * rho * area * u * u
 	FR = math.Sqrt(FL*FL + FD*FD)
-	Fprop = FR * math.Cos(oarangle)
+	Fprop = FR * cosine(oarangle)
 
 	return []float64{
 		phidot1, // 0
@@ -371,7 +371,7 @@ func EnergyBalance(
 	vb[0] = vb0
 	vc[0] = ((float64(Nrowers)*Mc+mb)*vs[0] - mb*vb[0]) / (float64(Nrowers) * Mc)
 	oarangle[0] = rigging.oarangle(0)
-	xblade[0] = -lout * math.Sin(oarangle[0])
+	xblade[0] = -lout * sine(oarangle[0])
 
 	i := 1
 
@@ -382,8 +382,8 @@ func EnergyBalance(
 		// blade entry loop
 		vhand := catchacceler * (time[i] - time[0])
 		vcstroke = crew.vcm(vhand, handlepos)
-		// phidot := vb[i-1] * math.Cos(oarangle[i-1])
-		// vhand := phidot * Lin * math.Cos(oarangle[i-1])
+		// phidot := vb[i-1] * cosine(oarangle[i-1])
+		// vhand := phidot * Lin * cosine(oarangle[i-1])
 		ydot[i] = vcstroke
 
 		alfaref := alfa * DragForm
@@ -408,8 +408,8 @@ func EnergyBalance(
 		}
 
 		phidot2 := res[0]
-		vhand2 := phidot2 * Lin * math.Cos(oarangle[i-1])
-		// fmt.Println(i, phidot2, Lin, oarangle[i-1], math.Cos(oarangle[i-1]), vhand2)
+		vhand2 := phidot2 * Lin * cosine(oarangle[i-1])
+		// fmt.Println(i, phidot2, Lin, oarangle[i-1], cosine(oarangle[i-1]), vhand2)
 
 		vcstroke2 = crew.vcm(vhand2, handlepos)
 
@@ -447,10 +447,10 @@ func EnergyBalance(
 		Cdrag[i-1] = res[6]
 		attackangle[i-1] = res[7]
 
-		vhand := phidot * Lin * math.Cos(oarangle[i-1])
+		vhand := phidot * Lin * cosine(oarangle[i-1])
 
 		vcstroke := crew.vcm(vhand, handlepos)
-		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*math.Cos(oarangle[i-1]))
+		Pbladeslip[i-1] = float64(Nrowers) * res[1] * (phidot*lout - vb[i-1]*cosine(oarangle[i-1]))
 
 		alfaref := alfa * DragForm
 		Fdrag := DragEq(mtotal, xdot[i-1], alfaref, 0, 0)
@@ -475,7 +475,7 @@ func EnergyBalance(
 		ydotdot[i] = (ydot[i] - ydot[i-1]) / dt
 		xdotdot[i] = zdotdot[i] - (Mcrew/mtotal)*ydotdot[i]
 
-		Pf[i-1] = float64(Nrowers) * Fblade[i-1] * xdot[i] * math.Cos(oarangle[i-1])
+		Pf[i-1] = float64(Nrowers) * Fblade[i-1] * xdot[i] * cosine(oarangle[i-1])
 
 		oarangle[i] = rigging.oarangle(handlepos)
 
@@ -565,7 +565,7 @@ func EnergyBalance(
 		Pw[i] = DragEq(mtotal, xdot[i], alfaref, 0, 0) * xdot[i]
 		Pmb[i] = mb * xdot[i] * xdotdot[i]
 		PMc[i] = Mcrew * (xdot[i] + ydot[i]) * (xdotdot[i] + ydotdot[i])
-		Phandle[i] = float64(Nrowers) * Fhandle[i] * xdot[i] * math.Cos(oarangle[i])
+		Phandle[i] = float64(Nrowers) * Fhandle[i] * xdot[i] * cosine(oarangle[i])
 		Pleg[i] = float64(Nrowers) * Mc * (xdotdot[i] + ydotdot[i]) * ydot[i]
 		Pqrower[i] = math.Abs(Pq[i])
 		Pdiss[i] = Pqrower[i] - Pq[i]
@@ -785,7 +785,7 @@ func ConstantVeloFast(
 		velocity[i] = res[2]
 	}
 
-	fres, _ := srinterpol3(F, velocity, velo)
+	fres, _ := srinterpol4(F, velocity, velo)
 	// fmt.Println(fres, velocity, F)
 	dv = 1.0
 
@@ -861,7 +861,7 @@ func ConstantWattFast(
 		power[i] = res[5]
 	}
 
-	fres, _ := srinterpol3(F, power, watt)
+	fres, _ := srinterpol4(F, power, watt)
 
 	dv = 1.0
 
@@ -904,7 +904,7 @@ func tailwind(
 	b := bearing * math.Pi / 180.
 	w := winddirection * math.Pi / 180.
 
-	vtail := -vwind*math.Cos(w-b) - vstream
+	vtail := -vwind*cosine(w-b) - vstream
 
 	return vtail
 }
