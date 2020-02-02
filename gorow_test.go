@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"runtime"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -44,6 +44,15 @@ func ToleranceTest(t *testing.T, got []float64, want []float64, name string) {
 		}
 	}
 	return
+}
+
+func TestSine(t *testing.T) {
+	x := math.Pi * 0.1
+	got := Sine(x)
+	want := math.Sin(x)
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("Sine approximation is wrong")
+	}
 }
 
 func TestGetField(t *testing.T) {

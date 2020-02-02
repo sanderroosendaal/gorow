@@ -1,6 +1,8 @@
 package gorow
 
 import (
+	"math"
+
 	"github.com/cnkei/gospline"
 	//	"github.com/pa-m/sklearn/interpolate"
 	"errors"
@@ -168,4 +170,26 @@ func rolling(data []float64, windowsize int) ([]float64, error) {
 		}
 	}
 	return out, nil
+}
+
+func Sine(x float64) float64 {
+	a0 := -0.10132118         // x
+	a1 := 0.0066208798        // x^3
+	a2 := -0.00017350505      // x^5
+	a3 := 0.0000025222919     // x^7
+	a4 := -0.000000023317787  // x^9
+	a5 := 0.00000000013291342 // x^11
+
+	x2 := x * x
+
+	p11 := a5
+	p9 := p11*x2 + a4
+	p7 := p9*x2 + a3
+	p5 := p7*x2 + a2
+	p3 := p5*x2 + a1
+	p1 := p3*x2 + a0
+
+	r := (x - math.Pi) * (x + math.Pi) * p1 * x
+
+	return r
 }
