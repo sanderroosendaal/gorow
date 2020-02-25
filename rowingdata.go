@@ -143,6 +143,7 @@ func gzipper(f string) (ok bool, err error) {
 	if err != nil {
 		return false, err
 	}
+	defer reader.Close()
 
 	filename := filepath.Base(f)
 	target := fmt.Sprintf("%s.gz", f)
@@ -599,6 +600,23 @@ func AveragePower(
 		}
 	}
 	return power / float64(len(strokes)-counter)
+}
+
+// SummaryString writes summary
+func SummaryString(strokes []StrokeRecord, title string, separator string) (string, error) {
+	stri1 := fmt.Sprintf("Workout Summary - %s\n", title)
+	stri1 += fmt.Sprintf("--%[1]sTotal%[1]s-Total----%[1]s--Avg--%[1]s-Avg-%[1]sAvg-%[1]s-Avg-%[1]s-Max-%[1]s-Avg\n", separator)
+	stri1 += fmt.Sprintf("--%[1]sDist-%[1]s-Time-----%[1]s--Pace-%[1]s-Pwr-%[1]sSPM-%[1]s-HR--%[1]s-HR--%[1]s-DPS\n", separator)
+
+	var totaldist, avgpace, avgspm, avghr, maxhr, avgdps, avgpower, , totaltime
+
+	cumdist, err := cumulativedistance([]strokes)
+
+	for stroke := range strokes {
+
+	}
+
+	return stri1, nil
 }
 
 // UpdateIntervalMetric updates intervals per metric

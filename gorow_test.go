@@ -141,10 +141,19 @@ func TestIntervalUpdate(t *testing.T) {
 	}
 	strokes, err = UpdateIntervalMetric(
 		strokes, "Spm",
-		25.0, "larger", 60.0, [2]float64{0, 0},
+		21.0, "larger", 60.0, [2]float64{0, 0},
 	)
 	if err != nil {
 		t.Errorf("UpdateIntervalMetric returned an error: %v", err.Error())
+	}
+}
+
+func TestSummaryString(t *testing.T) {
+	strokes, err := ReadCSV("testdata/testdata.csv")
+	s, err := SummaryString(strokes,"testing","|")
+	fmt.Println(s)
+	if err != nil {
+		t.Errorf("SummaryString returned an error: %v",err.Error())
 	}
 }
 
@@ -159,12 +168,12 @@ func TestCSVReaderWriter(t *testing.T) {
 	if want != got {
 		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
 	}
-	ok, err := WriteCSV(strokes, "testdata/out2.csv", true, false)
+	ok, err := WriteCSV(strokes, "testdata/outb.csv", true, false)
 	if !ok {
 		t.Errorf("CSVWriter: %v", err)
 	}
 
-	strokes2, err := ReadCSV("testdata/out2.csv")
+	strokes2, err := ReadCSV("testdata/outb.csv")
 	wantf := AveragePower(strokes)
 	gotf := AveragePower(strokes2)
 
@@ -173,13 +182,16 @@ func TestCSVReaderWriter(t *testing.T) {
 			gotf, wantf)
 	}
 
-	err = os.Remove("testdata/out2.csv.gz")
-	ok, err = WriteCSV(strokes, "testdata/out2.csv.gz", true, true)
+	err = os.Remove("testdata/outb.csv.gz")
+	if err != nil {
+		t.Errorf("Unable to remove testdata/outb.csv.gz")
+	}
+	ok, err = WriteCSV(strokes, "testdata/outb.csv.gz", true, true)
 	if !ok {
 		t.Errorf("CSVWriter (gzip): %v", err)
 	}
 
-	strokes, err = ReadCSV("testdata/out2.csv.gz")
+	strokes, err = ReadCSV("testdata/outb.csv.gz")
 	wantf = AveragePower(strokes)
 	gotf = AveragePower(strokes2)
 
