@@ -74,6 +74,29 @@ func TestGetField(t *testing.T) {
 	}
 }
 
+func TestFormatTime(t *testing.T) {
+	want := "00:45:23.2"
+	got := formatTime(2723.2)
+	if want != got {
+		t.Errorf("formatTime got incorrect result. Got %s, wanted %s\n", got, want)
+	}
+
+	want = "01:10:10.2"
+	got = formatTime(4210.2)
+	if want != got {
+		t.Errorf("formatTime got incorrect result. Got %s, wanted %s\n", got, want)
+	}
+
+}
+
+func TestFormatPace(t *testing.T) {
+	want := "01:45.1"
+	got := formatPace(105.1)
+	if want != got {
+		t.Errorf("formatTime got incorrect result. Got %s, wanted %s\n", got, want)
+	}
+}
+
 func TestCSVReader(t *testing.T) {
 	strokes, err := ReadCSV("testdata/testdata.csv")
 	if err != nil {
@@ -150,10 +173,21 @@ func TestIntervalUpdate(t *testing.T) {
 
 func TestSummaryString(t *testing.T) {
 	strokes, err := ReadCSV("testdata/testdata.csv")
-	s, err := SummaryString(strokes,"testing","|")
+	s, err := SummaryString(strokes, "testing", "|")
 	fmt.Println(s)
 	if err != nil {
-		t.Errorf("SummaryString returned an error: %v",err.Error())
+		t.Errorf("SummaryString returned an error: %v", err.Error())
+	}
+}
+
+func TestWorkString(t *testing.T) {
+	want := "W|01:10:20.1|09000|02:03.2|200.2|23.1|145.2|176.2|09.5"
+	got, err := workstring(9000, 4220.1, 123.2, 23.1, 145.2, 176.2, 9.5, 200.2, "|", "W")
+	if err != nil {
+		t.Errorf("workstring returned an error: %v", err.Error())
+	}
+	if want != got {
+		t.Errorf("workstring returned %s, expected %s", got, want)
 	}
 }
 
@@ -597,7 +631,6 @@ func TestRigExportImportFiles(t *testing.T) {
 	}
 
 	temppath := filepath.FromSlash("/tmp/dat1")
-	fmt.Printf("Temporary file location: %v\n", temppath)
 
 	err = ioutil.WriteFile(temppath, []byte(s), 0644)
 
