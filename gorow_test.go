@@ -134,6 +134,20 @@ func TestParquetReaderWriter(t *testing.T) {
 
 }
 
+func TestIntervalUpdate(t *testing.T) {
+	strokes, err := ReadCSV("testdata/testdata.csv")
+	if err != nil {
+		t.Errorf("CSVReader returned an error: %v", err.Error())
+	}
+	strokes, err = UpdateIntervalMetric(
+		strokes, "Spm",
+		25.0, "split", 60.0, [2]float64{0, 0},
+	)
+	if err != nil {
+		t.Errorf("UpdateIntervalMetric returned an error: %v", err.Error())
+	}
+}
+
 func TestCSVReaderWriter(t *testing.T) {
 	runtime.GOMAXPROCS(1)
 	strokes, err := ReadCSV("testdata/testdata.csv")

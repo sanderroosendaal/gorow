@@ -586,7 +586,9 @@ func averageNowindpace(strokes []StrokeRecord) float64 {
 }
 
 // AveragePower calculates average power
-func AveragePower(strokes []StrokeRecord) float64 {
+func AveragePower(
+	strokes []StrokeRecord,
+) float64 {
 	power := 0.0
 	var counter int
 	for _, stroke := range strokes {
@@ -597,6 +599,65 @@ func AveragePower(strokes []StrokeRecord) float64 {
 		}
 	}
 	return power / float64(len(strokes)-counter)
+}
+
+// UpdateIntervalMetric updates intervals per metric
+func UpdateIntervalMetric(
+	strokes []StrokeRecord,
+	metric string,
+	setvalue float64,
+	mode string,
+	smoothwindow float64,
+	activewindow [2]float64,
+) ([]StrokeRecord, error) {
+	// Set Active Window
+	if activewindow[1] == 0 {
+		activewindow[1] = strokes[len(strokes)-1].Timestamp
+
+	}
+	activewindow[0] -= strokes[0].Timestamp
+	activewindow[1] -= strokes[0].Timestamp
+
+	var metricvalues []float64
+	var dtavg float64
+
+	/// First loop to get some stats
+	for i, stroke := range strokes {
+		value, err := stroke.GetField(metric)
+		if err != nil {
+			return strokes, fmt.Errorf("Could not get value for %s in record number %v", metric, i)
+		}
+		metricvalues = append(metricvalues, value)
+		if i >= 1 {
+			dtavg += strokes[i].Timestamp - strokes[i-1].Timestamp
+		}
+	}
+	dtavg /= float64(len(strokes))
+
+	nrrecords := uint(smoothwindow / dtavg)
+	metricvalues, _ = ewmovingaverage(metricvalues, nrrecords)
+
+	// Second loop to set the values
+
+	largerthantype := 5.
+	smallerthantype := 3.
+	if mode == "smaller" {
+		largerthantype = 3.
+		smallerthantype = 5.
+	}
+
+	timezero := strokes[0].Timestamp
+
+	for i, stroke := range strokes {
+		stroketime := stroke.Timestamp - timezero
+		if metricvalues[i] >= setvalue && stroketime >= activewindow[0] && stroketime <= activewindow[1] {
+			strokes[i].Workoutstate = largerthantype
+		} else {
+			strokes[i].Workoutstate = smallerthantype
+		}
+	}
+
+	return strokes, nil
 }
 
 // AverageHR calculates average heart rate
