@@ -141,7 +141,7 @@ func TestIntervalUpdate(t *testing.T) {
 	}
 	strokes, err = UpdateIntervalMetric(
 		strokes, "Spm",
-		25.0, "split", 60.0, [2]float64{0, 0},
+		25.0, "larger", 60.0, [2]float64{0, 0},
 	)
 	if err != nil {
 		t.Errorf("UpdateIntervalMetric returned an error: %v", err.Error())
