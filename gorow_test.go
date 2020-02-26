@@ -97,6 +97,32 @@ func TestFormatPace(t *testing.T) {
 	}
 }
 
+func TestLapNumbers(t *testing.T) {
+	strokes, err := ReadCSV("testdata/7x2000m.csv")
+	want := 3745
+	got := len(strokes)
+	if want != got {
+		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
+	}
+	err = UpdateLapNumbers(&strokes)
+	if err != nil {
+		t.Errorf("UpdateLapNumbers returned an error: %v", err.Error())
+	}
+	list, err := GetLapNumbers(strokes)
+	if err != nil {
+		t.Errorf("GetLapNumbers returned an error: %v", err.Error())
+	}
+	wantlist := []int64{1, 2, 3, 4, 5, 6, 7}
+	if len(wantlist) != len(list) {
+		t.Errorf("GetLapnumbers returned a list of length %d, expected %d", len(list), len(wantlist))
+	}
+	for i := range list {
+		if list[i] != wantlist[i] {
+			t.Errorf("GetLapnumbers result %d, expected %d, got %d", i, wantlist[i], list[i])
+		}
+	}
+}
+
 func TestCSVReader(t *testing.T) {
 	strokes, err := ReadCSV("testdata/testdata.csv")
 	if err != nil {

@@ -439,6 +439,10 @@ func ReadCSV(f string) ([]StrokeRecord, error) {
 					if f, err := getfloatrecord(record[i]); err == nil {
 						row.Vstream = f
 					}
+				case " WorkoutState":
+					if f, err := getfloatrecord(record[i]); err == nil {
+						row.Workoutstate = f
+					}
 				}
 			}
 			if row.Velo == 0 && row.Pace != 0 {
@@ -619,24 +623,48 @@ func cumulativedistance(strokes []StrokeRecord) ([]float64, error) {
 }
 
 // UpdateLapNumbers returns workout data with lap number updated
-func UpdateLapNumbers(strokes []StrokeRecord) ([]StrokeRecord, error) {
+func UpdateLapNumbers(strokes *[]StrokeRecord) error {
 	lapnumber := 0
 	currentstate := "rest"
 
-	for _, stroke := range strokes {
+	for i := range *strokes {
 		if currentstate == "rest" {
-			switch stroke.Workoutstate {
-			case
-				5:
+			strokestate := (*strokes)[i].Workoutstate
+			switch strokestate {
+			case 1, 4, 5, 8, 9, 6, 7:
 				{
 					currentstate = "work"
-					lapnumber += 1
+					lapnumber++
 				}
 			}
 		}
+		if currentstate == "work" {
+			strokestate := (*strokes)[i].Workoutstate
+			switch strokestate {
+			case 3:
+				{
+					currentstate = "rest"
+				}
+			}
+		}
+		(*strokes)[i].Lapnr = int64(lapnumber)
 	}
 
-	return strokes, nil
+	return nil
+}
+
+// GetLapNumbers returns a list of unique lap numbers
+func GetLapNumbers(strokes []StrokeRecord) ([]int64, error) {
+	keys := make(map[int64]bool)
+	list := []int64{}
+	for _, stroke := range strokes {
+		entry := stroke.Lapnr
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list, nil
 }
 
 func divmodfloat(numerator float64, denominator int64) (quotient int64, remainder float64) {
