@@ -5,24 +5,35 @@ import "fmt"
 func cumulativedistance(strokes []StrokeRecord) ([]float64, []float64, error) {
 	var cumdist []float64
 	var dps []float64
-	cumdist = append(cumdist, 0)
+	cumdist = append(cumdist, strokes[0].Distance)
 	dps = append(dps, 0)
 	curdist := 0.0
+
 	for i := 1; i < len(strokes); i++ {
 		delta := strokes[i].Distance - strokes[i-1].Distance
 		distanceperstroke := 0.0
 		deltat := strokes[i].Timestamp - strokes[i-1].Timestamp
+		newdelta := delta
+		if delta < -10 {
+			newdelta = 0.0
+			if i >= 2 {
+				t3 := strokes[i].Timestamp
+				t2 := strokes[i-1].Timestamp
+				t1 := strokes[i-2].Timestamp
+
+				d2 := strokes[i-1].Distance
+				d1 := strokes[i-2].Distance
+				if t2 > t1 {
+					newdelta = (t3 - t2) * (d2 - d1) / (t2 - t1)
+				}
+			}
+		}
 		if deltat > 0 && strokes[i].Spm > 0 {
-			distanceperstroke = 60. * delta / (deltat * strokes[i].Spm)
+			distanceperstroke = 60. * newdelta / (deltat * strokes[i].Spm)
 		}
-		if delta > 0 {
-			curdist += delta
-			cumdist = append(cumdist, curdist)
-			dps = append(dps, distanceperstroke)
-		} else {
-			cumdist = append(cumdist, curdist)
-			dps = append(dps, 0)
-		}
+		curdist += newdelta
+		cumdist = append(cumdist, curdist+newdelta)
+		dps = append(dps, distanceperstroke)
 	}
 	return cumdist, dps, nil
 }
@@ -176,9 +187,138 @@ func workrest(strokes []StrokeRecord, separator string) (string, error) {
 	return striw + strir, nil
 }
 
+func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error) {
+	const workstate = "work"
+	const reststate = "rest"
+	cumdist, dps, err := cumulativedistance(strokes)
+	if err != nil {
+		return "", err
+	}
+	currentstate := workstate
+
+	restmetersprevious := 0.0
+	restmeters := 0.0
+	resttimeprevious := 0.0
+	resttime := 0.0
+
+	workmetersprevious := 0.0
+	workmeters := 0.0
+	worktimeprevious := strokes[0].Timestamp
+	worktime := 0.0
+
+	workpower := 0.0
+	restpower := 0.0
+
+	restspm := 0.0
+	workspm := 0.0
+
+	restavghr := 0.0
+	workavghr := 0.0
+	restmaxhr := 0.0
+	workmaxhr := 0.0
+
+	restdps := 0.0
+	workdps := 0.0
+
+	countintervalworkstrokes := 0
+
+	for i, stroke := range strokes {
+		strokestate := stroke.Workoutstate
+		lapid := stroke.Lapnr
+		switch strokestate {
+		case 1, 4, 5, 8, 9, 6, 7:
+			{
+				if currentstate == reststate {
+					// switching to work
+					restmeters += cumdist[i] - restmetersprevious
+					resttime += stroke.Timestamp - resttimeprevious
+					restmetersprevious = cumdist[i]
+					workmetersprevious = cumdist[i]
+					resttimeprevious = stroke.Timestamp
+					worktimeprevious = stroke.Timestamp
+					currentstate = workstate
+				}
+				// averages
+				if int(lapid) == lap {
+					countintervalworkstrokes++
+					workpower += stroke.Power
+					workspm += stroke.Spm
+					workavghr += stroke.Hr
+					if stroke.Hr > workmaxhr {
+						workmaxhr = stroke.Hr
+					}
+					workdps += dps[i]
+				}
+
+			}
+		case 3:
+			{
+				if currentstate == workstate {
+					if int(lapid) == lap {
+						workmeters += cumdist[i] - workmetersprevious
+						worktime += stroke.Timestamp - worktimeprevious
+					}
+
+					workmetersprevious = cumdist[i]
+					restmetersprevious = cumdist[i]
+					resttimeprevious = stroke.Timestamp
+					worktimeprevious = stroke.Timestamp
+					currentstate = reststate
+				}
+				// averages
+				restpower += stroke.Power
+				restspm += stroke.Spm
+				restavghr += stroke.Hr
+				if stroke.Hr > restmaxhr {
+					restmaxhr = stroke.Hr
+				}
+				restdps += dps[i]
+			}
+		}
+	}
+
+	avgpacework := 500. * worktime / workmeters
+
+	workpower /= float64(countintervalworkstrokes)
+	restpower /= float64(countintervalworkstrokes)
+	workspm /= float64(countintervalworkstrokes)
+	restspm /= float64(countintervalworkstrokes)
+	workavghr /= float64(countintervalworkstrokes)
+	restavghr /= float64(countintervalworkstrokes)
+
+	workdps /= float64(countintervalworkstrokes)
+	restdps /= float64(countintervalworkstrokes)
+
+	if worktime > 0 {
+		workdps = (workmeters / worktime) * 60. / workspm
+	}
+	if resttime > 0 {
+		restdps = (restmeters / resttime) * 60. / restspm
+	}
+	stri := fmt.Sprintf("%02d%s%05.0f%s", lap, separator, workmeters, separator)
+	stri += fmt.Sprintf("%s%s%s%s", formatPace(worktime), separator, formatPace(avgpacework), separator)
+	stri += fmt.Sprintf("%05.1f%s%04.1f%s", workpower, separator, workspm, separator)
+	stri += fmt.Sprintf("%05.1f%s%05.1f%s%04.1f", workavghr, separator, workmaxhr, separator, workdps)
+	stri += "\n"
+	return stri, nil
+}
+
 func intervalstats(strokes []StrokeRecord, separator string) (string, error) {
 	stri := "Workout Details\n"
 	stri += "#-|SDist|-Split-|-SPace-|-Pwr-|SPM-|AvgHR|MaxHR|DPS-\n"
+	laps, err := GetLapNumbers(strokes)
+	if err != nil {
+		return stri, err
+	}
+
+	for lap := range laps {
+		lapstri, err := lapstats(strokes, lap, separator)
+		if err != nil {
+			return stri, err
+		}
+		stri += lapstri
+	}
+
 	return stri, nil
 }
 
