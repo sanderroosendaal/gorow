@@ -2,11 +2,13 @@ package gorow
 
 import "fmt"
 
-func cumulativedistance(strokes []StrokeRecord) ([]float64, []float64, error) {
+func cumulativedistance(strokes []StrokeRecord) ([]float64, []float64, []float64, error) {
 	var cumdist []float64
 	var dps []float64
+	var deltas []float64
 	cumdist = append(cumdist, strokes[0].Distance)
 	dps = append(dps, 0)
+	deltas = append(deltas, strokes[1].Timestamp-strokes[0].Timestamp)
 	curdist := 0.0
 
 	for i := 1; i < len(strokes); i++ {
@@ -34,8 +36,9 @@ func cumulativedistance(strokes []StrokeRecord) ([]float64, []float64, error) {
 		curdist += newdelta
 		cumdist = append(cumdist, curdist+newdelta)
 		dps = append(dps, distanceperstroke)
+		deltas = append(deltas, deltat)
 	}
-	return cumdist, dps, nil
+	return cumdist, dps, deltas, nil
 }
 
 // SetLapNumbers returns workout data with lap number updated
@@ -75,12 +78,14 @@ func SetLapNumbers(strokes *[]StrokeRecord) error {
 func workrest(strokes []StrokeRecord, separator string) (string, error) {
 	const workstate = "work"
 	const reststate = "rest"
-	cumdist, dps, err := cumulativedistance(strokes)
+	cumdist, dps, deltas, err := cumulativedistance(strokes)
 	if err != nil {
 		return "", err
 	}
 	currentstate := workstate
 
+	deltatotwork := 0.0
+	deltatotrest := 0.0
 	restmetersprevious := 0.0
 	restmeters := 0.0
 	resttimeprevious := 0.0
@@ -121,14 +126,15 @@ func workrest(strokes []StrokeRecord, separator string) (string, error) {
 					currentstate = workstate
 				}
 				// averages
-				workpower += stroke.Power
-				workspm += stroke.Spm
-				workavghr += stroke.Hr
+				workpower += deltas[i] * stroke.Power
+				workspm += deltas[i] * stroke.Spm
+				workavghr += deltas[i] * stroke.Hr
 				if stroke.Hr > workmaxhr {
 					workmaxhr = stroke.Hr
 				}
 
-				workdps += dps[i]
+				workdps += deltas[i] * dps[i]
+				deltatotwork += deltas[i]
 
 			}
 		case 3:
@@ -143,13 +149,14 @@ func workrest(strokes []StrokeRecord, separator string) (string, error) {
 					currentstate = reststate
 				}
 				// averages
-				restpower += stroke.Power
-				restspm += stroke.Spm
-				restavghr += stroke.Hr
+				restpower += deltas[i] * stroke.Power
+				restspm += deltas[i] * stroke.Spm
+				restavghr += deltas[i] * stroke.Hr
 				if stroke.Hr > restmaxhr {
 					restmaxhr = stroke.Hr
 				}
-				restdps += dps[i]
+				restdps += deltas[i] * dps[i]
+				deltatotrest += deltas[i]
 			}
 		}
 	}
@@ -157,15 +164,15 @@ func workrest(strokes []StrokeRecord, separator string) (string, error) {
 	avgpacework := 500. * worktime / workmeters
 	avgpacerest := 500. * resttime / restmeters
 
-	workpower /= float64(len(strokes))
-	restpower /= float64(len(strokes))
-	workspm /= float64(len(strokes))
-	restspm /= float64(len(strokes))
-	workavghr /= float64(len(strokes))
-	restavghr /= float64(len(strokes))
+	workpower /= deltatotwork
+	restpower /= deltatotrest
+	workspm /= deltatotwork
+	restspm /= deltatotrest
+	workavghr /= deltatotwork
+	restavghr /= deltatotrest
 
-	workdps /= float64(len(strokes))
-	restdps /= float64(len(strokes))
+	workdps /= deltatotwork
+	restdps /= deltatotrest
 
 	if worktime > 0 {
 		workdps = (workmeters / worktime) * 60. / workspm
@@ -190,12 +197,13 @@ func workrest(strokes []StrokeRecord, separator string) (string, error) {
 func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error) {
 	const workstate = "work"
 	const reststate = "rest"
-	cumdist, dps, err := cumulativedistance(strokes)
+	cumdist, dps, deltas, err := cumulativedistance(strokes)
 	if err != nil {
 		return "", err
 	}
 	currentstate := workstate
 
+	deltatot := 0.0
 	restmetersprevious := 0.0
 	restmeters := 0.0
 	resttimeprevious := 0.0
@@ -207,17 +215,13 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 	worktime := 0.0
 
 	workpower := 0.0
-	restpower := 0.0
 
-	restspm := 0.0
 	workspm := 0.0
 
-	restavghr := 0.0
 	workavghr := 0.0
-	restmaxhr := 0.0
+
 	workmaxhr := 0.0
 
-	restdps := 0.0
 	workdps := 0.0
 
 	countintervalworkstrokes := 0
@@ -241,13 +245,14 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 				// averages
 				if int(lapid) == lap {
 					countintervalworkstrokes++
-					workpower += stroke.Power
-					workspm += stroke.Spm
-					workavghr += stroke.Hr
+					workpower += deltas[i] * stroke.Power
+					workspm += deltas[i] * stroke.Spm
+					workavghr += deltas[i] * stroke.Hr
 					if stroke.Hr > workmaxhr {
 						workmaxhr = stroke.Hr
 					}
-					workdps += dps[i]
+					workdps += deltas[i] * dps[i]
+					deltatot += deltas[i]
 				}
 
 			}
@@ -265,36 +270,22 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 					worktimeprevious = stroke.Timestamp
 					currentstate = reststate
 				}
-				// averages
-				restpower += stroke.Power
-				restspm += stroke.Spm
-				restavghr += stroke.Hr
-				if stroke.Hr > restmaxhr {
-					restmaxhr = stroke.Hr
-				}
-				restdps += dps[i]
+
 			}
 		}
 	}
 
 	avgpacework := 500. * worktime / workmeters
 
-	workpower /= float64(countintervalworkstrokes)
-	restpower /= float64(countintervalworkstrokes)
-	workspm /= float64(countintervalworkstrokes)
-	restspm /= float64(countintervalworkstrokes)
-	workavghr /= float64(countintervalworkstrokes)
-	restavghr /= float64(countintervalworkstrokes)
-
-	workdps /= float64(countintervalworkstrokes)
-	restdps /= float64(countintervalworkstrokes)
+	workpower /= deltatot
+	workspm /= deltatot
+	workavghr /= deltatot
+	workdps /= deltatot
 
 	if worktime > 0 {
 		workdps = (workmeters / worktime) * 60. / workspm
 	}
-	if resttime > 0 {
-		restdps = (restmeters / resttime) * 60. / restspm
-	}
+
 	stri := fmt.Sprintf("%02d%s%05.0f%s", lap, separator, workmeters, separator)
 	stri += fmt.Sprintf("%s%s%s%s", formatPace(worktime), separator, formatPace(avgpacework), separator)
 	stri += fmt.Sprintf("%05.1f%s%04.1f%s", workpower, separator, workspm, separator)
@@ -414,31 +405,32 @@ func SummaryString(strokes []StrokeRecord, title string, separator string) (stri
 	stri1 += fmt.Sprintf("--%[1]sTotal%[1]s-Total----%[1]s--Avg--%[1]s-Avg-%[1]sAvg-%[1]s-Avg-%[1]s-Max-%[1]s-Avg\n", separator)
 	stri1 += fmt.Sprintf("--%[1]sDist-%[1]s-Time-----%[1]s--Pace-%[1]s-Pwr-%[1]sSPM-%[1]s-HR--%[1]s-HR--%[1]s-DPS\n", separator)
 
-	var avgpace, avgspm, avghr, maxhr, avgdps, avgpower float64
-	var avgv float64
+	var avgpace, avgspm, avghr, maxhr, avgdps, avgpower, deltatot float64
+	// var avgv float64
 
-	cumdist, _, _ := cumulativedistance(strokes)
+	cumdist, _, deltas, _ := cumulativedistance(strokes)
 	totaldist := cumdist[len(strokes)-1]
 	totaltime := strokes[len(strokes)-1].Timestamp - strokes[0].Timestamp
 
-	for _, stroke := range strokes {
-		avgv += 500. / stroke.Pace
-		avgspm += stroke.Spm
-		avghr += stroke.Hr
-		avgdps += stroke.Strokedistance
-		avgpower += stroke.Power
+	for i, stroke := range strokes {
+		// avgv += deltas[i] * 500. / stroke.Pace
+		avgspm += deltas[i] * stroke.Spm
+		avghr += deltas[i] * stroke.Hr
+		avgdps += deltas[i] * stroke.Strokedistance
+		avgpower += deltas[i] * stroke.Power
 		if stroke.Hr > maxhr {
 			maxhr = stroke.Hr
 		}
+		deltatot += deltas[i]
 
 	}
 
-	avgv /= float64(len(strokes))
-	avgpace = 500. / avgv
-	avgspm /= float64(len(strokes))
-	avghr /= float64(len(strokes))
-	avgpower /= float64(len(strokes))
+	avgspm /= deltatot
+	avghr /= deltatot
+	avgpower /= deltatot
 
+	avgv := totaldist / totaltime
+	avgpace = 500. / avgv
 	avgdps = totaldist / (totaltime * avgspm / 60.)
 
 	stri1 += fmt.Sprintf("--%s%05.0f%s", separator, totaldist, separator)
