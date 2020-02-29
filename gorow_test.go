@@ -104,9 +104,9 @@ func TestLapNumbers(t *testing.T) {
 	if want != got {
 		t.Errorf("CSVReader got incorrect result. Got %d, wanted %d\n", got, want)
 	}
-	err = UpdateLapNumbers(&strokes)
+	err = SetLapNumbers(&strokes)
 	if err != nil {
-		t.Errorf("UpdateLapNumbers returned an error: %v", err.Error())
+		t.Errorf("SetLapNumbers returned an error: %v", err.Error())
 	}
 	list, err := GetLapNumbers(strokes)
 	if err != nil {
@@ -188,7 +188,7 @@ func TestIntervalUpdate(t *testing.T) {
 	if err != nil {
 		t.Errorf("CSVReader returned an error: %v", err.Error())
 	}
-	strokes, err = UpdateIntervalMetric(
+	_, err = UpdateIntervalMetric(
 		strokes, "Spm",
 		21.0, "larger", 60.0, [2]float64{0, 0},
 	)
@@ -199,21 +199,78 @@ func TestIntervalUpdate(t *testing.T) {
 
 func TestSummaryString(t *testing.T) {
 	strokes, err := ReadCSV("testdata/testdata.csv")
-	s, err := SummaryString(strokes, "testing", "|")
-	fmt.Println(s)
+
+	want := `Workout Summary - testing
+--|Total|-Total----|--Avg--|-Avg-|Avg-|-Avg-|-Max-|-Avg
+--|Dist-|-Time-----|--Pace-|-Pwr-|SPM-|-HR--|-HR--|-DPS
+--|01995|00:08:57.2|02:15.6|143.7|21.1|148.6|156.0|10.5
+`
+
+	got, err := SummaryString(strokes, "testing", "|")
+
 	if err != nil {
 		t.Errorf("SummaryString returned an error: %v", err.Error())
+	}
+
+	if want != got {
+		fmt.Println(want)
+		fmt.Println(got)
+		t.Errorf("SummaryString returned wrong result. See above")
 	}
 }
 
 func TestWorkString(t *testing.T) {
-	want := "W|01:10:20.1|09000|02:03.2|200.2|23.1|145.2|176.2|09.5"
+	want := " W|09000|01:10:20.1|02:03.2|200.2|23.1|145.2|176.2|09.5\n"
 	got, err := workstring(9000, 4220.1, 123.2, 23.1, 145.2, 176.2, 9.5, 200.2, "|", "W")
 	if err != nil {
 		t.Errorf("workstring returned an error: %v", err.Error())
 	}
 	if want != got {
+		fmt.Println(want)
+		fmt.Println(got)
 		t.Errorf("workstring returned %s, expected %s", got, want)
+	}
+}
+
+func TestIntervalString(t *testing.T) {
+	want := "01|00500|02:00.0|02:00.0|199.0|23.0|134.0|165.0|10.2\n"
+	got, err := intervalstring(1, 500, 120, 120, 23, 134, 165, 10.2, 199, "|")
+	if err != nil {
+		t.Errorf("workstring returned an error: %v", err.Error())
+	}
+	if want != got {
+		t.Errorf("intervalstring returned %s, expected %s", got, want)
+	}
+}
+
+func TestAllStats(t *testing.T) {
+	intervalswant := `Workout Summary - Workout Title
+--|Total|-Total----|--Avg--|-Avg-|Avg-|-Avg-|-Max-|-Avg
+--|Dist-|-Time-----|--Pace-|-Pwr-|SPM-|-HR--|-HR--|-DPS
+--|14902|01:03:51.3|02:08.5|184.6|22.1|155.2|177.0|10.5
+W |14000|00:56:51.5|02:01.8|198.5|23.1|154.5|176.0|10.7
+R |00906|00:06:60.0|03:51.8|071.6|14.0|160.1|176.0|06.2
+Workout Details
+#-|SDist|-Split-|-SPace-|-Pwr-|SPM-|AvgHR|MaxHR|DPS-
+00|02000|08:37.4|02:09.4|177.2|21.6|127.9|151.0|10.7
+01|02000|07:50.3|01:57.6|216.7|23.9|155.8|166.0|10.7
+02|02000|07:53.2|01:58.3|213.8|24.1|160.1|169.0|10.5
+03|02000|07:50.2|01:57.6|215.0|24.1|163.1|171.0|10.6
+04|02000|07:51.4|01:57.9|215.0|24.2|164.5|172.0|10.5
+05|02000|07:46.9|01:56.7|221.1|24.4|165.8|176.0|10.5
+06|02000|09:02.0|02:15.5|141.6|20.3|148.3|165.0|10.9`
+	strokes, err := ReadCSV("testdata/intervals.csv")
+	intervalsgot, err := AllStats(strokes, "Workout Title", "|")
+	if err != nil {
+		t.Errorf("AllStats returned an error: %v", err.Error())
+	}
+	if intervalswant != intervalsgot {
+		fmt.Println("----------------- WANT -------------------")
+		fmt.Println(intervalswant)
+		fmt.Println("----------------- GOT --------------------")
+		fmt.Println(intervalsgot)
+		fmt.Println("------------------------------------------")
+		t.Errorf("AllStats returned wrong answer. See above")
 	}
 }
 
