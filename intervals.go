@@ -9,26 +9,26 @@ func cumulativedistance(strokes []StrokeRecord) ([]float64, []float64, []float64
 	cumdist = append(cumdist, strokes[0].Distance)
 	dps = append(dps, 0)
 	deltas = append(deltas, strokes[1].Timestamp-strokes[0].Timestamp)
-	curdist := 0.0
+	curdist := strokes[0].Distance
 
 	for i := 1; i < len(strokes); i++ {
 		delta := strokes[i].Distance - strokes[i-1].Distance
 		distanceperstroke := 0.0
 		deltat := strokes[i].Timestamp - strokes[i-1].Timestamp
 		newdelta := delta
-		if delta < -10 {
+		if delta < 0 {
 			newdelta = 0.0
-			if i >= 2 {
-				t3 := strokes[i].Timestamp
-				t2 := strokes[i-1].Timestamp
-				t1 := strokes[i-2].Timestamp
-
-				d2 := strokes[i-1].Distance
-				d1 := strokes[i-2].Distance
-				if t2 > t1 {
-					newdelta = (t3 - t2) * (d2 - d1) / (t2 - t1)
-				}
-			}
+			// if i >= 2 {
+			// 	t3 := strokes[i].Timestamp
+			// 	t2 := strokes[i-1].Timestamp
+			// 	t1 := strokes[i-2].Timestamp
+			//
+			// 	d2 := strokes[i-1].Distance
+			// 	d1 := strokes[i-2].Distance
+			// 	if t2 > t1 {
+			// 		newdelta = (t3 - t2) * (d2 - d1) / (t2 - t1)
+			// 	}
+			//}
 		}
 		if deltat > 0 && strokes[i].Spm > 0 {
 			distanceperstroke = 60. * newdelta / (deltat * strokes[i].Spm)
@@ -203,6 +203,10 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 	}
 	currentstate := workstate
 
+	if strokes[0].Workoutstate == 3 {
+		currentstate = reststate
+	}
+
 	deltatot := 0.0
 	restmetersprevious := 0.0
 	restmeters := 0.0
@@ -211,6 +215,9 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 
 	workmetersprevious := 0.0
 	workmeters := 0.0
+	if currentstate == workstate {
+		workmeters = strokes[0].Distance
+	}
 	worktimeprevious := strokes[0].Timestamp
 	worktime := 0.0
 
@@ -275,8 +282,6 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 		}
 	}
 
-	avgpacework := 500. * worktime / workmeters
-
 	workpower /= deltatot
 	workspm /= deltatot
 	workavghr /= deltatot
@@ -285,6 +290,10 @@ func lapstats(strokes []StrokeRecord, lap int, separator string) (string, error)
 	if worktime > 0 {
 		workdps = (workmeters / worktime) * 60. / workspm
 	}
+
+	workmeters -= float64(int(strokes[0].Distance))
+	workmeters = float64(int(workmeters))
+	avgpacework := 500. * worktime / workmeters
 
 	stri := fmt.Sprintf("%02d%s%05.0f%s", lap, separator, workmeters, separator)
 	stri += fmt.Sprintf("%s%s%s%s", formatPace(worktime), separator, formatPace(avgpacework), separator)

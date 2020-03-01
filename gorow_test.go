@@ -203,7 +203,7 @@ func TestSummaryString(t *testing.T) {
 	want := `Workout Summary - testing
 --|Total|-Total----|--Avg--|-Avg-|Avg-|-Avg-|-Max-|-Avg
 --|Dist-|-Time-----|--Pace-|-Pwr-|SPM-|-HR--|-HR--|-DPS
---|01995|00:08:57.2|02:15.6|143.7|21.1|148.6|156.0|10.5
+--|02009|00:08:57.2|02:13.7|143.2|21.1|148.6|156.0|10.6
 `
 
 	got, err := SummaryString(strokes, "testing", "|")
@@ -244,6 +244,7 @@ func TestIntervalString(t *testing.T) {
 }
 
 func TestAllStats(t *testing.T) {
+	// this one is identical to the rowingdata.py version
 	intervalswant := `Workout Summary - Workout Title
 --|Total|-Total----|--Avg--|-Avg-|Avg-|-Avg-|-Max-|-Avg
 --|Dist-|-Time-----|--Pace-|-Pwr-|SPM-|-HR--|-HR--|-DPS
@@ -259,6 +260,25 @@ Workout Details
 04|02000|07:51.4|01:57.9|215.0|24.2|164.5|172.0|10.5
 05|02000|07:46.9|01:56.7|221.1|24.4|165.8|176.0|10.5
 06|02000|09:02.0|02:15.5|141.6|20.3|148.3|165.0|10.9`
+
+	// Temporary assignment
+	intervalswant = `Workout Summary - Workout Title
+--|Total|-Total----|--Avg--|-Avg-|Avg-|-Avg-|-Max-|-Avg
+--|Dist-|-Time-----|--Pace-|-Pwr-|SPM-|-HR--|-HR--|-DPS
+--|14879|01:03:51.5|02:08.8|184.5|22.1|155.1|177.0|10.5
+ W|13991|00:56:51.9|02:01.9|198.5|23.1|154.5|176.0|10.6
+ R|00865|00:05:59.6|03:27.9|071.5|14.0|160.2|177.0|10.3
+Workout Details
+#-|SDist|-Split-|-SPace-|-Pwr-|SPM-|AvgHR|MaxHR|DPS-
+00|02000|08:38.4|02:09.6|177.1|21.6|127.8|151.0|10.8
+01|01999|07:50.9|01:57.8|216.7|23.9|155.8|166.0|10.8
+02|01999|07:53.8|01:58.5|213.8|24.1|160.1|169.0|10.6
+03|01997|07:49.8|01:57.6|215.0|24.1|163.1|171.0|10.7
+04|01997|07:50.8|01:57.9|215.0|24.2|164.5|172.0|10.6
+05|01998|07:46.9|01:56.8|221.1|24.4|165.8|176.0|10.6
+06|01998|09:01.3|02:15.5|141.6|20.3|148.3|165.0|11.0
+`
+
 	strokes, err := ReadCSV("testdata/intervals.csv")
 	intervalsgot, err := AllStats(strokes, "Workout Title", "|")
 	if err != nil {
