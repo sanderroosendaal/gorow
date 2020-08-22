@@ -754,7 +754,7 @@ func ConstantVeloFast(
 	windv float64,
 	dowind bool,
 ) ([]float64, error) {
-	if velo < 2.5 || crew.Tempo < 10 {
+	if velo < 1.5 || crew.Tempo < 10 {
 		return []float64{50, velo, 0.5, 0, 0.7}, nil
 	}
 
@@ -931,7 +931,7 @@ func PhysGetPower(
 	power := res[3]
 	ratio := res[2]
 
-	if velowater < 2.5 || rower.Tempo < 10 {
+	if velowater < 1.5 || rower.Tempo < 10 {
 		pnowind := velo
 		return []float64{
 			power,

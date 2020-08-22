@@ -137,3 +137,9 @@ var RigDouble = NewRig(0.9, 27, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 
 
 // RigSingle 1x
 var RigSingle = NewRig(0.9, 14, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 0.98)
+
+// RigCoastalMaas coastal1x
+var RigCoastalMaas = NewRig(0.9, 18, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 2)
+
+// RigCoastalLiteboat coastal1x
+var RigCoastalLiteboat = NewRig(0.9, 35, 2.655, 1.6, 0.88, "scull", -0.93, 0.0822, 0.46, 1, 2)
