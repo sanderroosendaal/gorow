@@ -875,20 +875,23 @@ func TestConstantWatt(t *testing.T) {
 
 func TestMaas(t *testing.T) {
 	nkfactor := 1.15
-	pwr := []float64{114, 129, 151, 175, 222}
-	spm := []float64{18.8, 22.6, 24.9, 28.1, 31.1}
-	want := []float64{2.6, 3.0, 3.3, 3.5, 3.6}
+	// pwr := []float64{114, 129, 151, 175, 222}
+	pwr := []float64{113, 116, 131, 127, 137, 119, 133, 133, 151, 163, 177, 195, 224}
+	// spm := []float64{18.8, 22.6, 24.9, 28.1, 31.1}
+	spm := []float64{17.9, 19.8, 22.0, 22.7, 24.4, 24.4, 20.2, 22.2, 24.4, 26.3, 27.9, 29.5, 32.1}
+	// want := []float64{2.6, 3.0, 3.3, 3.5, 3.6}
+	want := []float64{2.89, 2.95, 3.05, 3.01, 3.05, 2.69, 3.1, 3.06, 3.28, 3.38, 3.52, 3.51, 3.73}
 
 	rg := RigCoastalMaas
 	for i := range want {
 		c := NewCrew(
-			90., 1.4, spm[i], 0.5,
+			95., 1.4, spm[i], 0.5,
 			SinusRecovery{},
 			Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
 		got, _ := ConstantWattFast(pwr[i]*nkfactor, c, rg, 0.03, 5, 5, 50, 1000, 5., 0, true, 15)
 		gotvelo := got[1]
-		if !GetTolerance(gotvelo, want[i], 0.05) {
-			t.Errorf("Maas Aero velo got %v, wanted %v", gotvelo, want[i])
+		if !GetTolerance(gotvelo, want[i], 0.1) {
+			t.Errorf("Maas Aero velo run %v got %v, wanted %v", i, gotvelo, want[i])
 		}
 	}
 
