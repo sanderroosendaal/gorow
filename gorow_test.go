@@ -874,7 +874,7 @@ func TestConstantWatt(t *testing.T) {
 }
 
 func TestMaas(t *testing.T) {
-	nkfactor := 1.15
+	// nkfactor := 1.15
 	// pwr := []float64{114, 129, 151, 175, 222}
 	pwr := []float64{113, 116, 131, 127, 137, 119, 133, 133, 151, 163, 177, 195, 224}
 	// spm := []float64{18.8, 22.6, 24.9, 28.1, 31.1}
@@ -883,18 +883,27 @@ func TestMaas(t *testing.T) {
 	want := []float64{2.89, 2.95, 3.05, 3.01, 3.05, 2.69, 3.1, 3.06, 3.28, 3.38, 3.52, 3.51, 3.73}
 
 	rg := RigCoastalMaas
+	rgolympic := RigSingle
+	sum := 0.0
 	for i := range want {
 		c := NewCrew(
-			95., 1.4, spm[i], 0.5,
+			93.9, 1.4, spm[i], 0.5,
 			SinusRecovery{},
 			Trapezium{X1: 0.15, X2: 0.5, H2: 0.9, H1: 1.0}, 1000., 1000.)
-		got, _ := ConstantWattFast(pwr[i]*nkfactor, c, rg, 0.03, 5, 5, 50, 1000, 5., 0, true, 15)
+		got, _ := ConstantWattFast(pwr[i], c, rg, 0.03, 5, 5, 50, 1000, 5., 0, true, 15)
+		got2, _ := ConstantWattFast(pwr[i], c, rgolympic, 0.03, 5, 5, 50, 1000, 5., 0, true, 15)
 		gotvelo := got[1]
-		if !GetTolerance(gotvelo, want[i], 0.1) {
-			t.Errorf("Maas Aero velo run %v got %v, wanted %v", i, gotvelo, want[i])
+		gotveloolympic := got2[1]
+		ratio := math.Pow(gotveloolympic/gotvelo, 3.0)
+		sum += ratio
+		if !GetTolerance(ratio, 1.24, 0.2) {
+			t.Errorf("Run %v : Maas Aero/Olympic shell velo ratio got %v, wanted %v at power %v", i, ratio, 1.24, pwr[i])
 		}
+
 	}
 
+	avg := sum / float64(len(pwr))
+	println(avg)
 }
 
 func TestPhysGetPower(t *testing.T) {
