@@ -785,7 +785,16 @@ func ConstantVeloFast(
 		velocity[i] = res[2]
 	}
 
-	fres, _ := srinterpol4(F, velocity, velo)
+	fres, err := srinterpol4(F, velocity, velo)
+	if err != nil {
+		return []float64{
+			0,
+			velo,
+			0,
+			0,
+			0,
+		}, err
+	}
 	// fmt.Println(fres, velocity, F)
 	dv = 1.0
 
@@ -861,7 +870,16 @@ func ConstantWattFast(
 		power[i] = res[5]
 	}
 
-	fres, _ := srinterpol4(F, power, watt)
+	fres, err := srinterpol4(F, power, watt)
+	if err != nil {
+		return []float64{
+			0,
+			0,
+			0,
+			0,
+			0,
+		}, err
+	}
 
 	dv = 1.0
 
