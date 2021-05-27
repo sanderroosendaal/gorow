@@ -254,6 +254,20 @@ func TestEWMABoth(t *testing.T) {
 
 }
 
+func TestMetricsShort(t *testing.T) {
+	_, _, _, _, _, _, err := WorkoutMetrics(
+		"testdata/test_short.csv",
+		200.0,
+		"male",
+		167, 185, 54,
+	)
+
+	if err == nil {
+		t.Error("Function WorkoutMetrics expected an error for short file")
+	}
+
+}
+
 func TestMetrics(t *testing.T) {
 	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
 		"testdata/testdata.csv",

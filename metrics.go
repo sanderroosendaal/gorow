@@ -15,6 +15,10 @@ func WorkoutMetrics(
 	hrftp, hrmax, hrmin float64,
 ) (tss, normp, trimp, hrtss, normv, normw float64, err error) {
 	strokes, err := ReadCSV(filename)
+	if len(strokes) < 30 {
+		err := errors.New("WorkoutMetrics - Less than 30 ddata points")
+		return 0, 0, 0, 0, 0, 0, err
+	}
 	if err != nil {
 		err := errors.New("WorkoutMetrics - ReadCSV" + err.Error())
 		return 0, 0, 0, 0, 0, 0, err
