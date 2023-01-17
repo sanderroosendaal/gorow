@@ -272,15 +272,73 @@ func TestEWMABoth(t *testing.T) {
 }
 
 func TestMetricsShort(t *testing.T) {
-	_, _, _, _, _, _, err := WorkoutMetrics(
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
 		"testdata/test_short.csv",
 		200.0,
 		"male",
 		167, 185, 54,
 	)
 
-	if err == nil {
-		t.Error("Function WorkoutMetrics expected an error for short file")
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{36.7, 171.3, 2.6, 1.49, 2.56, 171.3}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+				i, got[i], want[i])
+		}
+	}
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics raised an error for short file")
+	}
+
+}
+
+func TestMetricsShort2(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+		"testdata/test_short2.csv",
+		200.0,
+		"male",
+		167, 185, 54,
+	)
+
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{0.8, 118.3, 1.71, 1.0, 3.40, 360}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+				i, got[i], want[i])
+		}
+	}
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics raised an error for short file")
+	}
+
+}
+
+func TestMetricsShort3(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+		"testdata/test_short3.csv",
+		200.0,
+		"male",
+		167, 185, 54,
+	)
+
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{0.633, 118.3, 1.31, 0.76, 3.40, 113}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+				i, got[i], want[i])
+		}
+	}
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics raised an error for short file")
 	}
 
 }
