@@ -55,6 +55,23 @@ func TestSine(t *testing.T) {
 	}
 }
 
+func TestRebase(t *testing.T) {
+	x := []float64{1,3,5}
+	y := []float64{1,9,25}
+	x2 := []float64{1,2,3,4,5}
+	expected := []float64{1,5,9,17,25}
+	result, err := rebase(x,y,x2)
+	if err != nil {
+		t.Errorf("TestRebase, got error %s", err)
+	}
+	for i:= 0; i<len(expected)-1; i++ {
+		if result[i] != expected[i] {
+			t.Errorf("TestRebase, %d, got %f, want %f\n",
+			i, result[i], expected[i])
+		}
+	}
+}
+
 func TestCosine(t *testing.T) {
 	x := math.Pi * 0.1
 	got := cosine(x)
@@ -255,15 +272,73 @@ func TestEWMABoth(t *testing.T) {
 }
 
 func TestMetricsShort(t *testing.T) {
-	_, _, _, _, _, _, err := WorkoutMetrics(
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
 		"testdata/test_short.csv",
 		200.0,
 		"male",
 		167, 185, 54,
 	)
 
-	if err == nil {
-		t.Error("Function WorkoutMetrics expected an error for short file")
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{36.7, 171.3, 2.6, 1.49, 2.56, 171.3}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+				i, got[i], want[i])
+		}
+	}
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics raised an error for short file")
+	}
+
+}
+
+func TestMetricsShort2(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+		"testdata/test_short2.csv",
+		200.0,
+		"male",
+		167, 185, 54,
+	)
+
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{0.8, 118.3, 1.71, 1.0, 3.40, 360}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+				i, got[i], want[i])
+		}
+	}
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics raised an error for short file")
+	}
+
+}
+
+func TestMetricsShort3(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+		"testdata/test_short3.csv",
+		200.0,
+		"male",
+		167, 185, 54,
+	)
+
+	got := []float64{tss, normp, trimp, hrtss, normv, normw}
+	want := []float64{0.633, 118.3, 1.31, 0.76, 3.40, 113}
+
+	for i, value := range got {
+		if !GetTolerance(value, want[i], relativetolerance) {
+			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+				i, got[i], want[i])
+		}
+	}
+
+	if err != nil {
+		t.Error("Function WorkoutMetrics raised an error for short file")
 	}
 
 }
@@ -289,6 +364,7 @@ func TestMetrics(t *testing.T) {
 		}
 	}
 }
+
 
 func TestTailWind(t *testing.T) {
 	want := 0.10260604299770072
@@ -702,6 +778,28 @@ func TestDFootboard(t *testing.T) {
 		t.Errorf("dStroke equation gave incorrect result. Got %f, wanted %f\n",
 			got, want)
 	}
+}
+
+func TestStroke2Seconds(t *testing.T) {
+	t0 := []float64{1,3,5}
+	y0 := []float64{1,9,25}
+	want := []float64{1,5,9,17,25}
+	twant := []float64{1,2,3,4,5}
+	tgot, ygot, err := stroke2second(t0, y0)
+	if err != nil {
+		t.Errorf("TestRebase, got error %s", err)
+	}
+	for i:= 0; i<len(want)-1; i++ {
+		if ygot[i] != want[i] {
+			t.Errorf("TestStroke2Seconds (y), %d, got %f, want %f\n",
+			i, ygot[i], want[i])
+		}
+		if tgot[i] != twant[i] {
+			t.Errorf("TestStroke2Seconds (x), %d, got %f, want %f\n",
+			i, tgot[i], twant[i])
+		}
+	}
+
 }
 
 func TestLinSpace(t *testing.T) {

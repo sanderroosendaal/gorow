@@ -139,6 +139,30 @@ func srinterpol1(x []float64, y []float64, target float64) float64 {
 	return newx[minindex]
 }
 
+func stroke2second(t []float64, y []float64) ([]float64, []float64, error) {
+	aantal := len(t)
+	tmax := t[aantal-1]
+	tmin := t[0]
+	aantal2 := int(math.Round(tmax-tmin))
+	t2, _ := LinSpace(tmin, tmax, aantal2+1)
+	y2, err := rebase(t, y, t2)
+	return t2, y2, err
+}
+
+func rebase(x []float64, y []float64, x2 []float64) ([]float64, error) {
+	aantal := len(x2)
+	var y2 = make([]float64, aantal)
+
+	for i:= 0; i < aantal-1; i++ {
+		val, err := srinterpol4(y, x, x2[i])
+		y2[i] = val
+		if err != nil {
+			return y2, err
+		}
+	}
+	return y2, nil
+}
+
 func srinterpol2(x []float64, y []float64, target float64) float64 {
 	var dx = x[1] - x[0]
 
