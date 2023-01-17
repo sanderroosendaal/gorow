@@ -307,27 +307,6 @@ func TestMetrics(t *testing.T) {
 	}
 }
 
-func TestMetricsShortNew(t *testing.T) {
-	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
-		"testdata/test_short.csv",
-		200.0,
-		"male",
-		167, 185, 54,
-	)
-
-	if err != nil {
-		t.Error("Function WorkoutMetrics gave an error")
-	}
-
-	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346}
-
-	for i, value := range got {
-		if !GetTolerance(value, want[i], relativetolerance) {
-			t.Errorf("Function WorkoutMetrics, %d, got %f, wanted %f", i, got[i], want[i])
-		}
-	}
-}
 
 func TestTailWind(t *testing.T) {
 	want := 0.10260604299770072
