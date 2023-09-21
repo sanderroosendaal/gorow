@@ -319,26 +319,27 @@ func TestMetricsShort2(t *testing.T) {
 
 }
 
-func TestMetricsShort3(t *testing.T) {
+
+func TestMetricsShortNK(t *testing.T) {
 	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
-		"testdata/test_short3.csv",
+		"testdata/nk_testdata.csv",
 		200.0,
 		"male",
 		167, 185, 54,
 	)
 
 	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{0.633, 118.3, 1.31, 0.76, 3.40, 113}
+	want := []float64{52.8, 152, -6.5, -3.75, 3.40, 465}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
-			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+			t.Errorf("Function WorkoutMetrics NK file, %d, got %f, wanted %f",
 				i, got[i], want[i])
 		}
 	}
 
 	if err != nil {
-		t.Error("Function WorkoutMetrics raised an error for short file")
+		t.Error("Function WorkoutMetrics raised an error for NK file")
 	}
 
 }
