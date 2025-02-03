@@ -272,15 +272,15 @@ func TestEWMABoth(t *testing.T) {
 }
 
 func TestMetricsShort(t *testing.T) {
-	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+	tss, normp, trimp, hrtss, normv, normw, spmtss, err := WorkoutMetrics(
 		"testdata/test_short.csv",
 		200.0,
 		"male",
-		167, 185, 54,
+		167, 185, 54, 10,
 	)
 
-	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{36.7, 171.3, 2.6, 1.49, 2.56, 171.3}
+	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
+	want := []float64{36.7, 171.3, 2.6, 1.49, 2.56, 171.3, 0}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
@@ -296,15 +296,15 @@ func TestMetricsShort(t *testing.T) {
 }
 
 func TestMetricsShort2(t *testing.T) {
-	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+	tss, normp, trimp, hrtss, normv, normw, spmtss, err := WorkoutMetrics(
 		"testdata/test_short2.csv",
 		200.0,
 		"male",
-		167, 185, 54,
+		167, 185, 54, 10,
 	)
 
-	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{0.8, 118.3, 1.71, 1.0, 3.40, 360}
+	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
+	want := []float64{0.8, 118.3, 1.71, 1.0, 3.40, 360, 2.242015}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
@@ -319,44 +319,45 @@ func TestMetricsShort2(t *testing.T) {
 
 }
 
-func TestMetricsShort3(t *testing.T) {
-	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
-		"testdata/test_short3.csv",
+
+func TestMetricsShortNK(t *testing.T) {
+	tss, normp, trimp, hrtss, normv, normw, spmtss, err := WorkoutMetrics(
+		"testdata/nk_testdata.csv",
 		200.0,
 		"male",
-		167, 185, 54,
+		167, 185, 54, 10,
 	)
 
-	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{0.633, 118.3, 1.31, 0.76, 3.40, 113}
+	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
+	want := []float64{52.8, 152, -6.5, -3.75, 3.40, 465, 92.7}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
-			t.Errorf("Function WorkoutMetrics short file, %d, got %f, wanted %f",
+			t.Errorf("Function WorkoutMetrics NK file, %d, got %f, wanted %f",
 				i, got[i], want[i])
 		}
 	}
 
 	if err != nil {
-		t.Error("Function WorkoutMetrics raised an error for short file")
+		t.Error("Function WorkoutMetrics raised an error for NK file")
 	}
 
 }
 
 func TestMetrics(t *testing.T) {
-	tss, normp, trimp, hrtss, normv, normw, err := WorkoutMetrics(
+	tss, normp, trimp, hrtss, normv, normw, spmtss, err := WorkoutMetrics(
 		"testdata/testdata.csv",
 		200.0,
 		"male",
-		167, 185, 54,
+		167, 185, 54, 10,
 	)
 
 	if err != nil {
 		t.Error("Function WorkoutMetrics gave an error")
 	}
 
-	got := []float64{tss, normp, trimp, hrtss, normv, normw}
-	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346}
+	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
+	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346, 16.6}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
