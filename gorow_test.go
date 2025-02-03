@@ -276,7 +276,7 @@ func TestMetricsShort(t *testing.T) {
 		"testdata/test_short.csv",
 		200.0,
 		"male",
-		167, 185, 54, 10,
+		167, 185, 54, 500,
 	)
 
 	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
@@ -300,11 +300,11 @@ func TestMetricsShort2(t *testing.T) {
 		"testdata/test_short2.csv",
 		200.0,
 		"male",
-		167, 185, 54, 10,
+		167, 185, 54, 500,
 	)
 
 	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
-	want := []float64{0.8, 118.3, 1.71, 1.0, 3.40, 360, 2.242015}
+	want := []float64{0.8, 118.3, 1.71, 1.0, 3.40, 360, 1.56}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
@@ -325,11 +325,11 @@ func TestMetricsShortNK(t *testing.T) {
 		"testdata/nk_testdata.csv",
 		200.0,
 		"male",
-		167, 185, 54, 10,
+		167, 185, 54, 500,
 	)
 
 	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
-	want := []float64{52.8, 152, -6.5, -3.75, 3.40, 465, 92.7}
+	want := []float64{52.8, 152, -6.5, -3.75, 3.40, 465, 64.3}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {
@@ -349,7 +349,7 @@ func TestMetrics(t *testing.T) {
 		"testdata/testdata.csv",
 		200.0,
 		"male",
-		167, 185, 54, 10,
+		167, 185, 54, 500,
 	)
 
 	if err != nil {
@@ -357,7 +357,7 @@ func TestMetrics(t *testing.T) {
 	}
 
 	got := []float64{tss, normp, trimp, hrtss, normv, normw, spmtss}
-	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346, 16.6}
+	want := []float64{8.120, 147.529, 16.782, 9.670, 3.722, 414.346, 11.5}
 
 	for i, value := range got {
 		if !GetTolerance(value, want[i], relativetolerance) {

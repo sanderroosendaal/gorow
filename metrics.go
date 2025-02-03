@@ -37,7 +37,7 @@ func WorkoutMetrics(
 		orighr[i] = strokes[i].Hr
 		origvelo[i] = strokes[i].Velo
 		origwps[i] = strokes[i].Workperstroke
-		origspmpower[i] = wpsavg*strokes[i].Spm
+		origspmpower[i] = wpsavg*strokes[i].Spm/60.0 
 	}
 
 	if len(strokes) < 30 {
